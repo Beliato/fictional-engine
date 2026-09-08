@@ -110,3 +110,35 @@ del expediente de evidencia que se entrega.
 **Revisar:** si conviene sellar además el commit de git, y qué debe pasar si
 el hash no coincide — hoy se propone marcar la evidencia de equidad como no
 válida sin abortar la corrida, en la misma lógica del D9.
+
+## D14 — El cargador rechaza claves desconocidas
+`cargar_configuracion` falla no solo cuando falta una clave, sino también
+cuando sobra una que no reconoce. El motivo es concreto: si alguien escribe
+`demographic_parity_diference` (una `f`), con validación laxa ese umbral
+desaparecería en silencio y con él la prueba que gobierna — y el reporte de
+equidad diría "aprueba" sin haber medido esa métrica.
+
+Es el mismo criterio que ya aplicaba `trazabilidad.esquema` con los campos de
+la bitácora.
+**Revisar:** el costo es que agregar una clave al `config.yaml` obliga a
+tocar el cargador. Es deliberado (la config no debe crecer sin que el código
+la contemple), pero conviene tenerlo presente.
+
+## D15 — Los rangos de umbral se derivan del nombre, no de una lista
+El cargador valida que los umbrales terminados en `_min` estén en (0, 1] —son
+cocientes, como la regla del 80 %— y que el resto estén en [0, 1] —son
+diferencias absolutas—.
+
+La alternativa era incrustar en el código la lista de métricas válidas, pero
+eso convertiría al cargador en una segunda fuente de verdad sobre qué se
+evalúa, justo lo que el principio de "sin estado oculto" quiere evitar.
+**Revisar:** si se agrega una métrica con otra semántica de rango (p. ej. un
+estadístico no acotado), la convención de nombres se queda corta.
+
+## D16 — `columnas_sensor_pir` vacía no es un error de configuración
+La lista solo puede completarse tras inspeccionar el dataset CASAS concreto,
+así que el cargador la acepta vacía. La exigencia de que no lo esté
+corresponde a quien consuma los datos (`src/comun/datos.py`), que es donde
+falta la información de verdad.
+**Revisar:** cuando el dataset esté descargado y la lista completa, considerar
+si el cargador debe pasar a exigirla no vacía.

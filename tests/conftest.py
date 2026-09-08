@@ -16,13 +16,11 @@ def ruta_config() -> Path:
 
 
 @pytest.fixture
-def config():
-    """Configuración cargada desde el `config.yaml` del repo.
+def config(ruta_config):
+    """Configuración cargada desde el `config.yaml` del repo."""
+    from src.comun.configuracion import cargar_configuracion
 
-    TODO: devolver `src.comun.configuracion.cargar_configuracion(ruta)` una
-        vez esté implementado.
-    """
-    pytest.skip("TODO: implementar cargar_configuracion")
+    return cargar_configuracion(ruta_config)
 
 
 @pytest.fixture
