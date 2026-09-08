@@ -1,0 +1,33 @@
+# --- Entornos virtuales ---
+.venv/
+venv/
+ENV/
+
+# --- Caches de Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# --- Datos (nunca se versionan; se obtienen vía procedimiento documentado) ---
+datos/crudos/*
+!datos/crudos/.gitkeep
+datos/intermedios/*
+!datos/intermedios/.gitkeep
+
+# --- Artefactos generados (salida reproducible del pipeline) ---
+artefactos/*
+!artefactos/.gitkeep
+!artefactos/bitacora/.gitkeep
+
+# --- Dependencias transitivas congeladas localmente ---
+# requirements.lock SÍ se versiona (ver Makefile: make lock)
+
+# --- Sistema operativo / editores ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,18 @@
+# Dependencias directas con versiones EXACTAS fijadas.
+#
+# Reproducibilidad:
+#   - Estas son las dependencias de primer nivel. Tras `make setup`, ejecute
+#     `make lock` para congelar el cierre transitivo completo en
+#     `requirements.lock` (ese archivo SÍ se versiona).
+#   - Objetivo: Python 3.11.x, Linux/WSL2, sin GPU.
+#   - Conjunto verificado como mutuamente compatible (NumPy 1.26 / scikit-learn 1.4).
+#   - No actualizar una línea sin re-generar requirements.lock y re-ejecutar las pruebas.
+
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.4.2
+shap==0.45.1
+fairlearn==0.10.0
+matplotlib==3.8.4
+pyyaml==6.0.1
+pytest==8.2.0

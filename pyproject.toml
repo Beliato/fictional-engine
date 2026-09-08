@@ -1,0 +1,13 @@
+# Configuración de herramientas (no empaqueta el proyecto: se ejecuta como
+# código fuente, no como paquete instalado). Solo agrupa ajustes de tooling
+# para que no haya estado oculto en la máquina de cada quien.
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "integracion: prueba que ejecuta un paso o el pipeline de extremo a extremo",
+    "lento: prueba que tarda (entrenamiento real, SHAP sobre muchas filas)",
+]
+filterwarnings = ["error"]
