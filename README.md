@@ -11,10 +11,12 @@ El requisito transversal del proyecto es **reproducibilidad y trazabilidad**;
 por eso el propio repositorio es ejemplar en eso: versiones fijadas, semillas
 declaradas, ejecución determinista y sin estado oculto.
 
-> **Estado:** esqueleto. Firmas, tipos, docstrings y estructura están puestos;
-> la lógica está marcada con `TODO` / `raise NotImplementedError`. La única
-> pieza implementada es el esquema de trazabilidad
-> (`src/trazabilidad/esquema.py`) y sus pruebas.
+> **Estado:** en construcción. Firmas, tipos, docstrings y estructura están
+> puestos; la lógica pendiente está marcada con `TODO` /
+> `raise NotImplementedError`. Ya implementados:
+>
+> - `src/trazabilidad/esquema.py` — esquema de la bitácora de inferencias.
+> - `src/comun/configuracion.py` — carga y validación de `config.yaml`.
 
 ---
 
