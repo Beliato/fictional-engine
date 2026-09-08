@@ -1,4 +1,4 @@
-"""Orquestador del marco: ejecuta los 6 pasos en orden y de forma determinista.
+"""Orquestador del marco: ejecuta el procedimiento de la Tabla 9.
 
 Uso:
     python -m src.procedimiento.orquestador --config config.yaml
@@ -6,10 +6,11 @@ Uso:
 Garantías:
     - Verifica el entorno (PYTHONHASHSEED, versiones) antes de empezar.
     - Fija la semilla global una sola vez, al inicio.
-    - Ejecuta los pasos en orden fijo, propagando un `ContextoEjecucion`
-      inmutable.
-    - Aunque el paso 4 (equidad) falle su veredicto, el pipeline continúa:
-      un veredicto negativo es evidencia válida, no un error.
+    - Resuelve primero las precondiciones (datos y modelo sellado) y solo
+      después ejecuta los 6 pasos del procedimiento, en orden fijo,
+      propagando un `ContextoEjecucion` inmutable.
+    - Aunque el veredicto de equidad del paso 4 no apruebe, el pipeline
+      continúa: un veredicto negativo es evidencia válida, no un error.
     - Devuelve código de salida 0 si el pipeline completó, 2 si el veredicto
       de equidad no aprueba, 1 si hubo un error de ejecución.
 """
@@ -33,7 +34,7 @@ class ResultadoEjecucion:
 
 
 def ejecutar_marco(ruta_config: str | Path = "config.yaml") -> ResultadoEjecucion:
-    """Ejecuta los 6 pasos del marco.
+    """Ejecuta las precondiciones y los 6 pasos del procedimiento.
 
     Args:
         ruta_config: ruta a `config.yaml`.
@@ -47,7 +48,10 @@ def ejecutar_marco(ruta_config: str | Path = "config.yaml") -> ResultadoEjecucio
         3. `fijar_semilla_global(config.semilla)`.
         4. Crear `ContextoEjecucion` (id_ejecucion = UUID determinista o
            timestamp+hash de config).
-        5. Recorrer `src.procedimiento.pasos.PASOS` encadenando el contexto.
+        5. Recorrer `pasos.PRECONDICIONES` (datos y modelo sellado) y luego
+           `pasos.PASOS`, encadenando el contexto. La separación importa: si
+           una precondición falla es un error de ejecución (código 1), no un
+           hallazgo de cumplimiento.
         6. Derivar `codigo_salida` del veredicto de equidad.
         7. Devolver `ResultadoEjecucion`.
     """
