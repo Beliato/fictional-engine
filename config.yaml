@@ -1,0 +1,120 @@
+# =============================================================================
+# Configuración central del marco operativo de cumplimiento regulatorio.
+#
+# REGLA DE ORO (reproducibilidad y no p-hacking):
+#   Los umbrales de las métricas de equidad (bloque `equidad.umbrales`) se
+#   declaran AQUÍ, ANTES de ejecutar el pipeline. NUNCA se ajustan después de
+#   observar los resultados. Todo cambio de umbral debe quedar en el historial
+#   de git con su justificación.
+#
+# Este archivo es la ÚNICA fuente de verdad para parámetros. El código no debe
+# contener constantes ocultas ni valores por defecto que sustituyan a los de
+# aquí: si una clave falta, el cargador debe fallar de forma explícita.
+# =============================================================================
+
+version_marco: "0.1.0"
+
+# --- Reproducibilidad ---------------------------------------------------------
+semilla: 42
+determinismo:
+  # PYTHONHASHSEED debe fijarse como variable de entorno ANTES de arrancar el
+  # intérprete (scripts/setup.sh y el Makefile lo exportan). Se repite aquí
+  # solo para que quede declarado y verificable.
+  pythonhashseed: 42
+  # 1 => ejecución de un solo hilo. Evita el no-determinismo introducido por
+  # el paralelismo de scikit-learn / BLAS.
+  n_jobs: 1
+
+# --- Rutas (relativas a la raíz del repositorio) ----------------------------
+rutas:
+  datos_crudos: datos/crudos
+  datos_intermedios: datos/intermedios
+  artefactos: artefactos
+  plantillas: plantillas
+  registro_inferencias: artefactos/bitacora/inferencias.jsonl
+  manifiesto: artefactos/manifiesto.json
+  # Productos de los pasos 1 y 3 del procedimiento (Tabla 9).
+  ficha_caracterizacion: artefactos/ficha_caracterizacion.md
+  protocolo_evaluacion: artefactos/protocolo_evaluacion.md
+  datasheet: artefactos/datasheet.md
+  model_card: artefactos/model_card.md
+  reporte_cumplimiento: artefactos/reporte_cumplimiento.md
+
+# --- Dataset ----------------------------------------------------------------
+datos:
+  fuente: "CASAS (http://casas.wsu.edu/datasets/)"
+  archivo_crudo: datos/crudos/casas.csv
+  # Columna con la etiqueta de actividad a predecir.
+  columna_objetivo: actividad
+  # Columnas correspondientes a sensores PIR de movimiento. TODO: completar
+  # tras inspeccionar el dataset concreto que se use.
+  columnas_sensor_pir: []
+  particion:
+    test_size: 0.2
+    estratificar: true
+
+# --- Modelo ----------------------------------------------------------------
+modelo:
+  tipo: RandomForestClassifier
+  # Versión semántica del modelo. Se sella en cada ejecución y se registra en
+  # cada inferencia de la bitácora.
+  version: "0.1.0"
+  hiperparametros:
+    n_estimators: 300
+    max_depth: 12
+    min_samples_leaf: 5
+    class_weight: balanced
+    random_state: 42
+    n_jobs: 1
+
+# --- Principio 1: Explicabilidad ------------------------------------------
+explicabilidad:
+  explainer: TreeExplainer
+  # Nº de filas usadas para la atribución global (importancia agregada).
+  muestras_globales: 1000
+  # Si true, se guarda una explicación local por cada inferencia y se
+  # referencia desde la bitácora.
+  guardar_local_por_inferencia: true
+
+# --- Principio 2: Equidad -------------------------------------------------
+equidad:
+  # Subgrupos de comparación. Cada entrada referencia una columna presente
+  # tras la preparación de datos (paso 1 del marco).
+  subgrupos:
+    - nombre: franja_horaria
+      columna: franja_horaria
+      categorias: [madrugada, mañana, tarde, noche]
+    - nombre: residente
+      columna: residente_id
+      categorias: []          # vacío => se infieren de los datos
+  # Umbrales PRE-DECLARADOS. Si una métrica excede su umbral => veredicto FALLA.
+  umbrales:
+    demographic_parity_difference: 0.10
+    equalized_odds_difference: 0.10
+    true_positive_rate_difference: 0.10
+    false_positive_rate_difference: 0.10
+    selection_rate_ratio_min: 0.80        # "regla del 80 %"
+
+# --- Principio 3: Trazabilidad ------------------------------------------
+trazabilidad:
+  version_esquema: "1.0.0"
+  formato: jsonl
+  # Responsable declarado por defecto para las inferencias (persona + rol).
+  responsable_por_defecto: "TODO: Nombre Apellido — Rol / Unidad responsable"
+
+# --- Articulación normativa ---------------------------------------------------
+# Mapeo (provisional, validar con especialista legal) de cada principio de la
+# Estrategia Nacional de IA de Costa Rica con AI Act EU y NIST AI RMF.
+articulacion_normativa:
+  explicabilidad:
+    enia_cr: "Principio de transparencia y explicabilidad"
+    ai_act_eu: "Art. 13 — Transparencia y comunicación de información"
+    nist_ai_rmf: "MEASURE 2.9 / Función EXPLAIN"
+  equidad:
+    enia_cr: "Principio de equidad y no discriminación"
+    ai_act_eu: "Art. 10 — Gobernanza de datos y sesgos"
+    nist_ai_rmf: "MEASURE 2.11 — Sesgo perjudicial"
+  trazabilidad:
+    enia_cr: "Principio de rendición de cuentas y trazabilidad"
+    ai_act_eu: "Art. 12 — Conservación de registros (logging)"
+    nist_ai_rmf: "GOVERN 1.4 / MANAGE 4.1"
