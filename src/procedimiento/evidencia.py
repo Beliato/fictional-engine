@@ -1,7 +1,14 @@
-"""Generación de la evidencia auditable (paso 6).
+"""Generación de los artefactos documentales del expediente de evidencia.
 
 Produce artefactos legibles por un auditor y un manifiesto que permite
-reproducir y verificar la ejecución bit a bit.
+reproducir y verificar la ejecución bit a bit. Cada generador se invoca desde
+el paso del procedimiento (Tabla 9) que lo tiene como producto:
+
+    paso 1 -> generar_ficha_caracterizacion
+    paso 2 -> generar_datasheet
+    paso 3 -> generar_protocolo_evaluacion
+    paso 5 -> generar_model_card, generar_reporte_cumplimiento
+    paso 6 -> generar_bitacora_ejecucion, generar_manifiesto
 """
 
 from __future__ import annotations
@@ -11,6 +18,37 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.procedimiento.pasos import ContextoEjecucion
+
+
+def generar_ficha_caracterizacion(ctx: "ContextoEjecucion") -> Path:
+    """Rellena `plantillas/ficha_caracterizacion.md` (producto del paso 1).
+
+    Describe el sistema evaluado, su finalidad, su población destinataria y
+    la configuración de sensores empleada. Es el insumo de caracterización
+    que la función MAPEAR del NIST AI RMF exige antes de medir nada.
+
+    TODO: sustituir marcadores desde `config` y `ctx.modelo`; escribir en
+        `config.rutas.ficha_caracterizacion`.
+    """
+    raise NotImplementedError
+
+
+def generar_protocolo_evaluacion(ctx: "ContextoEjecucion") -> Path:
+    """Rellena `plantillas/protocolo_evaluacion.md` (producto del paso 3).
+
+    Deja constancia de los subgrupos de comparación, las métricas de equidad
+    y los umbrales de referencia declarados ANTES de ejecutar las pruebas,
+    junto con el hash del `config.yaml` que los contiene.
+
+    Ese hash es el control metodológico: sin él, la afirmación de que los
+    umbrales no se ajustaron a los resultados no es verificable por un
+    auditor externo.
+
+    TODO: sustituir marcadores desde `config.equidad`; calcular el hash del
+        config y devolverlo en `ctx.hash_protocolo`; escribir en
+        `config.rutas.protocolo_evaluacion`.
+    """
+    raise NotImplementedError
 
 
 def generar_model_card(ctx: "ContextoEjecucion") -> Path:

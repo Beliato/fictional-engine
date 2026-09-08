@@ -33,6 +33,10 @@ rutas:
   plantillas: plantillas
   registro_inferencias: artefactos/bitacora/inferencias.jsonl
   manifiesto: artefactos/manifiesto.json
+  # Productos de los pasos 1 y 3 del procedimiento (Tabla 9).
+  ficha_caracterizacion: artefactos/ficha_caracterizacion.md
+  protocolo_evaluacion: artefactos/protocolo_evaluacion.md
+  datasheet: artefactos/datasheet.md
   model_card: artefactos/model_card.md
   reporte_cumplimiento: artefactos/reporte_cumplimiento.md
 
