@@ -27,10 +27,17 @@ src/
 │   └── verificacion.py    integridad + cobertura de la bitácora (CLI)
 │
 └── procedimiento/    orquestación
-    ├── pasos.py           los 6 pasos como funciones puras sobre ContextoEjecucion
-    ├── evidencia.py       model card, datasheet, reporte, bitácora, manifiesto
-    └── orquestador.py     entrypoint: verifica entorno, fija semilla, encadena pasos
+    ├── pasos.py           PRECONDICIONES + los 6 pasos de la Tabla 9, como
+    │                      funciones puras sobre ContextoEjecucion
+    ├── evidencia.py       ficha, datasheet, protocolo, model card, reporte,
+    │                      bitácora, manifiesto
+    └── orquestador.py     entrypoint: verifica entorno, fija semilla, encadena
+                           precondiciones y luego pasos
 ```
+
+Los tres módulos de principio no son pasos: se **aplican** dentro del paso 4
+(ejecución de pruebas) y se **documentan** en el paso 5 (generación de
+artefactos).
 
 ## Principios de diseño
 
@@ -51,21 +58,31 @@ src/
 
 ```
 datos/crudos/casas.csv
-   │  paso 1
+   │  precondición A
    ▼
 datos/intermedios/caracteristicas.parquet ──► ParticionSupervisada
-   │  paso 2
+   │  precondición B
    ▼
 artefactos/modelo/                (ModeloSellado)
-   │  paso 3                          │ paso 4
-   ▼                                  ▼
-artefactos/explicaciones/       artefactos/equidad/  (VeredictoEquidad)
-   │                                  │
-   └────────────► paso 5 ◄────────────┘
-                    ▼
-       artefactos/bitacora/inferencias.jsonl  (+ verificación)
-                    │  paso 6
-                    ▼
-   artefactos/{model_card.md, datasheet.md, reporte_cumplimiento.md,
-              bitacora_ejecucion.*, manifiesto.json}
+   │
+   │  paso 1 ──► artefactos/ficha_caracterizacion.md
+   │  paso 2 ──► artefactos/datasheet.md
+   │  paso 3 ──► artefactos/protocolo_evaluacion.md  (sella hash de config.yaml)
+   ▼
+────────────────────── paso 4: ejecución de pruebas ──────────────────────
+   │                        │                            │
+   ▼                        ▼                            ▼
+artefactos/            artefactos/equidad/        artefactos/bitacora/
+explicaciones/         (VeredictoEquidad)         inferencias.jsonl
+   │                        │                            │
+   └────────────────────────┴──────────┬─────────────────┘
+                                       │  paso 5
+                                       ▼
+   artefactos/{reporte_explicabilidad.md, reporte_equidad.md, model_card.md,
+              reporte_cumplimiento.md}
+                                       │  paso 6
+                                       ▼
+   artefactos/{bitacora_ejecucion.*, manifiesto.json}
+   + comprobación: reconstrucción de decisiones · hash del protocolo intacto
+     · los 9 requerimientos con artefacto presente
 ```

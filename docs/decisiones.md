@@ -3,13 +3,26 @@
 Registro de decisiones tomadas al montar el esqueleto. Cada una es revisable
 y reversible antes de empezar a implementar.
 
-## D1 — Los 6 pasos del marco
-El enunciado no los enumeraba. Se definieron como:
-preparar datos · entrenar modelo · explicabilidad · equidad · trazabilidad ·
-evidencia auditable. Los pasos 3-5 corresponden 1:1 con los tres principios.
-**Revisar:** ¿el "entrenamiento" debe ser un paso del marco de *cumplimiento*
-o una precondición externa? Si el modelo ya viene dado, el paso 2 pasa a ser
-"carga y sellado del modelo".
+## D1 — Los 6 pasos del marco — RESUELTA
+Al montar el esqueleto los pasos se definieron como: preparar datos · entrenar
+modelo · explicabilidad · equidad · trazabilidad · evidencia auditable, y se
+dejó abierta la pregunta de si el entrenamiento era un paso del marco de
+*cumplimiento* o una precondición externa.
+
+**El documento la contesta.** La Tabla 10 declara que "el modelo actúa como
+sujeto de prueba, no como objeto de optimización": es precondición. Y la
+Tabla 9 fija el procedimiento en seis pasos distintos de los que tenía el
+esqueleto.
+
+Los pasos se realinearon 1:1 con la Tabla 9 (caracterización · documentación
+de datos · declaración de criterios · ejecución de pruebas · generación de
+artefactos · verificación de auditabilidad). Preparar datos y sellar el modelo
+bajaron a `pasos.PRECONDICIONES`. Los tres módulos de principio, que antes
+eran los pasos 3-5, ahora se aplican dentro del paso 4 y se consolidan en el 5.
+
+Motivo de fondo: el criterio de éxito del piloto (§5.7) es haber ejecutado
+íntegramente el procedimiento de la Tabla 9. Si el código sigue otra
+descomposición, esa afirmación hay que defenderla en prosa en vez de mostrarla.
 
 ## D2 — Idioma del código
 Nombres de módulos, funciones y docstrings en español, para alinearse con el
@@ -70,3 +83,30 @@ shap/sklearn emitan DeprecationWarnings.
 (solo `.gitkeep`). `config.yaml` y `requirements.lock` SÍ se versionan.
 **Revisar:** si quiere versionar algún artefacto de referencia (p. ej. un
 manifiesto "de oro") para comparación en CI.
+
+## D12 — "Previo al entrenamiento" en el datasheet (R4.3)
+El requerimiento R4.3 y el paso 2 de la Tabla 9 piden documentar la
+composición del dataset **antes del entrenamiento del modelo**. En el pipeline,
+sin embargo, el sellado del modelo es una precondición y ocurre antes del
+paso 2.
+
+Se interpretó "previo al entrenamiento" como una exigencia normativa sobre el
+**contenido y la procedencia** del artefacto (documentar el dataset tal como
+estaba antes de entrenar, sin información derivada de los resultados del
+modelo), no como un orden de ejecución del pipeline. Es coherente con un marco
+que audita un sistema ya construido.
+
+**Revisar:** si prefiere honrarlo también como orden — el datasheet se
+generaría entre las dos precondiciones — o si alcanza con dejar la
+interpretación escrita aquí y en el propio datasheet. La segunda opción es más
+simple; la primera es más literal y más fácil de defender si alguien del
+tribunal la señala.
+
+## D13 — Sellado del protocolo por hash
+El paso 3 sella el SHA-256 de `config.yaml` en `ctx.hash_protocolo` y el paso 6
+lo vuelve a comprobar. Sin esto, "los umbrales se declararon antes" es una
+declaración de buena fe: el historial de git lo respalda, pero no queda dentro
+del expediente de evidencia que se entrega.
+**Revisar:** si conviene sellar además el commit de git, y qué debe pasar si
+el hash no coincide — hoy se propone marcar la evidencia de equidad como no
+válida sin abortar la corrida, en la misma lógica del D9.

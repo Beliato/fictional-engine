@@ -92,28 +92,40 @@ Convenciones de reproducibilidad:
 | Config y contexto inmutables (`frozen`) | `src/comun/configuracion.py`, `src/procedimiento/pasos.py` |
 | Manifiesto con hashes de toda entrada/salida | paso 6 → `artefactos/manifiesto.json` |
 
-## Flujo de los 6 pasos
+## Flujo del procedimiento
 
-Detalle y mapeo normativo en [`docs/marco_operativo.md`](docs/marco_operativo.md).
+Los 6 pasos son, uno a uno, los de la **Tabla 9** del documento de tesis.
+Detalle y mapeo normativo en
+[`docs/marco_operativo.md`](docs/marco_operativo.md).
 
-1. **Preparación de datos** — carga y validación de CASAS, características,
-   partición determinista, hash de datos.
-2. **Entrenamiento del modelo** — clasificador con hiperparámetros y semilla
-   declarados; se sella versión + hashes.
-3. **Explicabilidad (P1)** — SHAP global (muestra determinista) y local (por
-   inferencia); artefactos referenciables.
-4. **Equidad (P2)** — desempeño desagregado por subgrupo y métricas de equidad
-   contra **umbrales pre-declarados**; veredicto pasa/falla.
-5. **Trazabilidad (P3)** — bitácora JSONL con una línea por inferencia, luego
-   verificación de integridad y cobertura.
-6. **Evidencia auditable** — model card, datasheet, reporte de cumplimiento,
-   bitácora de ejecución y manifiesto con todos los hashes.
+**Precondiciones** — no son pasos del marco. El modelo es *sujeto de prueba,
+no objeto de optimización*, así que preparar los datos y sellar el modelo
+deben estar resueltos antes de que el procedimiento empiece. Si una falla, es
+error de ejecución (código 1), no un hallazgo de cumplimiento.
+
+| # | Paso | Producto | NIST | Requerimientos |
+|---|---|---|---|---|
+| 1 | Caracterización del sistema | Ficha de caracterización | MAPEAR | insumo de R5.2 |
+| 2 | Documentación del dataset | Datasheet | MAPEAR | R4.3 |
+| 3 | Declaración de criterios | Protocolo declarado | MAPEAR | R4.2 |
+| 4 | Ejecución de pruebas técnicas | Resultados + bitácora | MEDIR | R3.1-R3.3, R4.1, R4.2, R5.1 |
+| 5 | Generación de artefactos | Reportes + model card | GOBERNAR | R5.2 |
+| 6 | Verificación de auditabilidad | Expediente de evidencia | GESTIONAR | R5.3 |
 
 ```
-crudos ─▶ ①características ─▶ ②modelo ─▶ ③explicaciones
-                                    └──▶ ④veredicto equidad
-                        ③④ ─▶ ⑤bitácora + verificación ─▶ ⑥model card · reporte · manifiesto
+precondiciones:  crudos ─▶ características ─▶ modelo sellado
+                                                    │
+procedimiento:   ①ficha ─▶ ②datasheet ─▶ ③protocolo (sella hash de config)
+                                                    │
+                 ④ explicabilidad · equidad · bitácora   ◀── umbrales sellados
+                                                    │
+                 ⑤ reportes + model card ─▶ ⑥ verificación + manifiesto
 ```
+
+Los tres módulos de principio se **aplican** en el paso 4 y se **documentan**
+en el paso 5. El paso 3 sella el hash de `config.yaml` y el paso 6 lo vuelve a
+comprobar: es lo que hace demostrable —y no solo declarable— que los umbrales
+de equidad no se ajustaron después de ver los resultados.
 
 ## Configuración (`config.yaml`)
 
