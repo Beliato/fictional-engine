@@ -142,3 +142,35 @@ corresponde a quien consuma los datos (`src/comun/datos.py`), que es donde
 falta la información de verdad.
 **Revisar:** cuando el dataset esté descargado y la lista completa, considerar
 si el cargador debe pasar a exigirla no vacía.
+
+## D17 — Una bitácora vacía es NO VÁLIDA
+`verificar_registro` reporta la bitácora vacía como problema, no como caso
+trivialmente correcto. El registro es el sustrato material de la rendición de
+cuentas: cero inferencias registradas no evidencian el comportamiento de nada,
+y un informe "válido" sobre un archivo vacío sería justamente el tipo de
+evidencia hueca que el marco quiere evitar.
+**Revisar:** si algún flujo legítimo verifica antes de registrar, este criterio
+daría un falso negativo.
+
+## D18 — El lote se valida entero antes de escribir la primera línea
+`registrar_lote` construye y valida todos los registros y recién entonces
+escribe. En una bitácora append-only no hay forma de retirar una línea ya
+escrita, así que un lote a medias dejaría evidencia parcial imposible de
+corregir sin romper la garantía de inmutabilidad.
+
+El `fsync` va una sola vez al final del lote: la durabilidad del conjunto es
+la misma y evita un fsync por fila, que en un set de prueba grande domina el
+tiempo de ejecución.
+
+## D19 — La versión de esquema se comprueba al construir el escritor
+`RegistroEstructurado.__init__` exige que `config.trazabilidad.version_esquema`
+coincida con `VERSION_ESQUEMA` del código, y falla si no. Escribir bajo una
+versión y auditar bajo otra no evidencia nada; conviene enterarse antes de la
+primera línea y no durante la auditoría.
+
+## D20 — `referencia_explicacion` se resuelve contra la raíz del repositorio
+Las referencias a artefactos de explicación se guardan relativas a la raíz
+para que la bitácora siga siendo verificable al moverla de máquina. Una ruta
+absoluta se respeta tal cual, pero ata la evidencia al equipo que la produjo.
+**Revisar:** si el expediente se va a distribuir, conviene prohibir las rutas
+absolutas también aquí, como ya hace el cargador de configuración.
