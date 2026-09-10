@@ -15,8 +15,10 @@ declaradas, ejecución determinista y sin estado oculto.
 > puestos; la lógica pendiente está marcada con `TODO` /
 > `raise NotImplementedError`. Ya implementados:
 >
-> - `src/trazabilidad/esquema.py` — esquema de la bitácora de inferencias.
 > - `src/comun/configuracion.py` — carga y validación de `config.yaml`.
+> - `src/comun/utilidades.py` — hashing, tiempo UTC, E/S JSON determinista.
+> - `src/trazabilidad/` — **Principio 3 completo**: esquema, escritor
+>   append-only y verificación de integridad y cobertura.
 
 ---
 
