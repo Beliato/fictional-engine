@@ -308,3 +308,59 @@ el desplazamiento temporal del D24 —sklearn avisa `y_pred contains classes
 not in y_true` porque el modelo predice `Housekeeping`, que no existe en
 prueba—. Todo eso va al model card como limitación declarada, no como algo a
 corregir.
+
+## D32 — El contrato de ingesta: dónde termina el marco y empieza el dataset
+El marco se aplica a *sistemas basados en sensores PIR*, no a CASAS. Hasta
+esta refactorización eso era cierto para casi todo el código, pero
+`cargar_crudo` tenía incrustado el formato de CASAS: separadores, posiciones
+de campo y el vocabulario `begin`/`end`. Un equipo con su propio dataset
+habría tenido que **editar `datos.py`**, y editar el instrumento no es
+aplicarlo: los resultados dejan de ser comparables entre sistemas, que es
+justo lo que el procedimiento promete.
+
+Ahora la costura está declarada. `src/comun/lectores.py` define el contrato
+—`marca_temporal`, `sensor`, `valor`, `actividad`, en orden— y `datos.py` ya
+no conoce ningún formato. Integrar otro dataset es escribir un lector,
+registrarlo y cambiar `datos.formato`.
+
+La forma del contrato no es una abstracción inventada: **todo sistema de
+sensores pasivos es un flujo de (cuándo, qué sensor, qué estado)**.
+
+`leer_eventos` **verifica el contrato** sobre lo que devuelve el lector. Sin
+esa verificación el contrato sería documentación; con ella, un adaptador mal
+escrito falla en la costura y no tres pasos más adelante, con un error que ya
+no señala la causa.
+
+Hay una prueba que recorre el pipeline completo con un CSV de formato ajeno
+sin tocar `datos.py`, `modelado.py` ni el procedimiento. Es la evidencia
+verificable de que el marco es replicable, que hasta ahora era solo una
+afirmación del documento.
+
+## D33 — Las franjas horarias son configuración, no una constante
+`_FRANJAS` estaba fija en el código. Es una decisión de dominio: un servicio
+con turnos de noche distintos querría otros cortes, y ese cambio no debe
+exigir tocar código. Pasó a `datos.franjas_horarias`.
+
+El cargador exige que empiecen en 0 y que los cortes sean ascendentes: un
+hueco dejaría horas sin franja, y una fila sin subgrupo desaparecería del
+análisis desagregado sin que nadie lo note.
+
+Se añadió además una **comprobación cruzada**: los nombres de las franjas
+deben coincidir con `equidad.subgrupos[franja_horaria].categorias`. Cada
+bloque puede ser válido por separado y el conjunto ser incoherente; esa
+discrepancia no rompe la carga, reaparece como una categoría ausente en el
+reporte de equidad, ya tarde.
+
+## D34 — Ordenar los eventos es responsabilidad del lector
+Lo encontró la verificación del contrato apenas se activó: el crudo de Aruba
+**no viene perfectamente ordenado**, y `cargar_crudo` lo ordenaba en silencio
+después de parsear.
+
+Se movió el ordenamiento al lector. El contrato exige eventos en orden y cada
+formato sabe cómo llegar a eso; que el marco lo arreglara por detrás
+significaba que un lector podía entregar cualquier cosa y nadie se enteraba.
+El orden es estable, para que dos eventos con la misma marca conserven el del
+archivo — el único desempate reproducible disponible.
+
+Verificado que la refactorización no cambió comportamiento: el hash de las
+características sobre Aruba es idéntico antes y después.

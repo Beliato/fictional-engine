@@ -49,6 +49,11 @@ datos:
     for smart spaces", IEEE Intelligent Systems, 2011. La licencia del dataset
     prohíbe redistribuirlo sin permiso expreso de CASAS.
   archivo_crudo: datos/crudos/aruba.txt
+  # Formato del crudo. Selecciona el lector de `src/comun/lectores.py`, que
+  # es lo único del marco que conoce un formato concreto. Aplicar el marco a
+  # otro dataset PIR = escribir un lector nuevo y cambiar esta clave; ningún
+  # otro módulo se entera. Ver docs/aplicar-a-otro-dataset.md
+  formato: casas_eventos
   # Columna objetivo del cuadro de características que produce `datos.py`.
   columna_objetivo: actividad
 
@@ -106,6 +111,18 @@ datos:
     # `Respirate` tiene 6 instancias en todo el dataset. Con seis ejemplos no
     # se puede partir ni evaluar de forma sensata.
     excluidas: [Respirate]
+
+  # Cortes que definen el subgrupo de equidad `franja_horaria`. Es una
+  # decisión de dominio, no una constante: un servicio con turnos de noche
+  # distintos querría otros cortes, y ese cambio no debe exigir tocar código.
+  # `desde` es la hora de inicio inclusive; la primera franja debe empezar
+  # en 0 y los cortes deben ser ascendentes.
+  # Los nombres tienen que coincidir con `equidad.subgrupos[franja_horaria]`.
+  franjas_horarias:
+    - {desde: 0,  nombre: madrugada}
+    - {desde: 6,  nombre: mañana}
+    - {desde: 12, nombre: tarde}
+    - {desde: 18, nombre: noche}
 
   ventana:
     # Nº de eventos consecutivos que forman una ventana de observación.

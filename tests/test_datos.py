@@ -14,6 +14,7 @@ import pytest
 
 from src.comun import datos as D
 from src.comun.datos import EsquemaDatosInvalido
+from src.comun.lectores import FormatoNoReconocido
 
 
 @pytest.fixture
@@ -92,8 +93,9 @@ def test_falla_si_no_existe_el_crudo(config, tmp_path):
 
 
 def test_falla_si_ningun_evento_usa_un_sensor_declarado(config_con_crudo):
+    """El lector no puede devolver una tabla vacía y seguir de largo."""
     texto = "2010-11-04 00:00:00.000000 ZZZ ON\n"
-    with pytest.raises(EsquemaDatosInvalido, match="ningún evento"):
+    with pytest.raises(FormatoNoReconocido, match="ningún evento"):
         D.cargar_crudo(config_con_crudo(texto))
 
 
@@ -200,8 +202,23 @@ def test_deriva_las_columnas_sensibles(config_con_crudo):
     [(0, "madrugada"), (5, "madrugada"), (6, "mañana"), (11, "mañana"),
      (12, "tarde"), (17, "tarde"), (18, "noche"), (23, "noche")],
 )
-def test_franja_horaria_cubre_las_24_horas(hora, esperada):
-    assert D.franja_horaria(hora) == esperada
+def test_franja_horaria_cubre_las_24_horas(config, hora, esperada):
+    assert D.franja_horaria(hora, config.datos.franjas_horarias) == esperada
+
+
+def test_las_franjas_salen_de_la_configuracion(config):
+    """Cambiar los cortes es configurar, no editar código."""
+    import dataclasses
+
+    from src.comun.configuracion import FranjaHoraria
+
+    turnos = (
+        FranjaHoraria(desde=0, nombre="turno_noche"),
+        FranjaHoraria(desde=8, nombre="turno_dia"),
+    )
+    assert D.franja_horaria(3, turnos) == "turno_noche"
+    assert D.franja_horaria(20, turnos) == "turno_dia"
+    assert dataclasses.is_dataclass(config.datos.franjas_horarias[0])
 
 
 def test_las_sensibles_no_son_caracteristicas_del_modelo(config_con_crudo):

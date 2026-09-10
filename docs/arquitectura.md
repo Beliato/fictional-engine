@@ -6,7 +6,8 @@
 src/
 ├── comun/            infraestructura compartida, sin lógica de negocio
 │   ├── configuracion.py   carga + validación de config.yaml -> dataclasses frozen
-│   ├── datos.py            carga/validación/partición determinista de CASAS
+│   ├── lectores.py         CONTRATO DE INGESTA + lector por formato
+│   ├── datos.py            validación/características/partición (sin formato)
 │   ├── modelado.py         construir/entrenar/sellar/persistir el clasificador
 │   ├── semillas.py         control de aleatoriedad y verificación de entorno
 │   └── utilidades.py       hashing, tiempo UTC, E/S JSON determinista
