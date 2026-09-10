@@ -9,6 +9,7 @@ completo?". Ejecutable de forma independiente:
 from __future__ import annotations
 
 import argparse
+import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -60,17 +61,48 @@ def _marca_temporal_utc(valor: str) -> datetime | None:
     return momento
 
 
-def _ruta_explicacion(referencia: str, config: "Configuracion") -> Path:
-    """Resuelve la referencia de explicación a una ruta del sistema.
+def _ruta_explicacion(
+    referencia: str, config: "Configuracion"
+) -> tuple[Path, str | None]:
+    """Resuelve una referencia de explicación a `(archivo, fragmento)`.
 
-    Las referencias se guardan relativas a la raíz del repositorio para que la
-    bitácora siga siendo válida al moverla de máquina.
+    Dos formas admitidas:
+
+        artefactos/explicaciones/e.json                  un archivo por explicación
+        artefactos/explicaciones/local/e.jsonl#evt-001   un registro de un
+                                                          artefacto consolidado
+
+    En la segunda, el fragmento es el `id_evento` de una línea del JSONL. Las
+    rutas se guardan relativas a la raíz del repositorio para que la bitácora
+    siga siendo verificable al moverla de máquina.
     """
-    ruta = Path(referencia)
-    if ruta.is_absolute():
-        return ruta
-    raiz = config.rutas.artefactos.parent
-    return raiz / ruta
+    archivo, _, fragmento = referencia.partition("#")
+    ruta = Path(archivo)
+    if not ruta.is_absolute():
+        ruta = config.rutas.artefactos.parent / ruta
+    return ruta, (fragmento or None)
+
+
+def _ids_en_artefacto(
+    ruta: Path, cache: dict[Path, set[str] | None]
+) -> set[str] | None:
+    """`id_evento` presentes en un artefacto JSONL consolidado.
+
+    Cada archivo se lee una sola vez: una bitácora de 11.000 inferencias
+    referencia 11.000 veces el mismo artefacto. Devuelve `None` si el archivo
+    no se puede leer como JSONL con `id_evento` por línea.
+    """
+    if ruta not in cache:
+        try:
+            with ruta.open("r", encoding="utf-8") as f:
+                cache[ruta] = {
+                    str(json.loads(linea)["id_evento"])
+                    for linea in f
+                    if linea.strip()
+                }
+        except (OSError, ValueError, KeyError, TypeError):
+            cache[ruta] = None
+    return cache[ruta]
 
 
 def verificar_registro(
@@ -85,8 +117,9 @@ def verificar_registro(
         - `marca_temporal` en ISO 8601 UTC y en orden no decreciente.
         - `confianza` en [0, 1].
         - `version_modelo` == `config.modelo.version` para todos los registros.
-        - `referencia_explicacion` apunta a un artefacto existente (si
-          `config.explicabilidad.guardar_local_por_inferencia`).
+        - `referencia_explicacion` apunta a un artefacto existente y, si es
+          un artefacto consolidado (`archivo#id_evento`), el registro está
+          adentro (si `config.explicabilidad.guardar_local_por_inferencia`).
         - `responsable` no vacío ni con el texto placeholder "TODO".
 
     Una bitácora vacía se reporta como no válida: el registro es el sustrato
@@ -123,6 +156,7 @@ def verificar_registro(
 
     vistos: set[str] = set()
     anterior: datetime | None = None
+    artefactos: dict[Path, set[str] | None] = {}
 
     for n, registro in enumerate(registros, start=1):
         etiqueta = f"registro {n} (id_evento={registro.id_evento!r})"
@@ -165,13 +199,9 @@ def verificar_registro(
         problemas.extend(_problemas_responsable(registro, etiqueta))
 
         if config.explicabilidad.guardar_local_por_inferencia:
-            destino = _ruta_explicacion(registro.referencia_explicacion, config)
-            if not destino.exists():
-                problemas.append(
-                    f"{etiqueta}: referencia_explicacion "
-                    f"{registro.referencia_explicacion!r} no apunta a un "
-                    "artefacto existente"
-                )
+            problemas.extend(
+                _problemas_explicacion(registro, etiqueta, config, artefactos)
+            )
 
     return InformeVerificacion(
         ruta=ruta,
@@ -191,6 +221,41 @@ def _problemas_responsable(
         return [
             f"{etiqueta}: responsable {registro.responsable!r} conserva el "
             "texto de la plantilla; la decisión no queda atribuida a nadie"
+        ]
+    return []
+
+
+def _problemas_explicacion(
+    registro: RegistroInferencia,
+    etiqueta: str,
+    config: "Configuracion",
+    cache: dict[Path, set[str] | None],
+) -> list[str]:
+    """Comprueba que la explicación referenciada existe de verdad (R3.1).
+
+    Con un artefacto consolidado, que el archivo exista no basta: el registro
+    concreto tiene que estar adentro, o la bitácora estaría citando una
+    explicación que nadie calculó.
+    """
+    referencia = registro.referencia_explicacion
+    destino, fragmento = _ruta_explicacion(referencia, config)
+    if not destino.exists():
+        return [
+            f"{etiqueta}: referencia_explicacion {referencia!r} no apunta a un "
+            "artefacto existente"
+        ]
+    if fragmento is None:
+        return []
+    ids = _ids_en_artefacto(destino, cache)
+    if ids is None:
+        return [
+            f"{etiqueta}: {destino.name} no es un artefacto JSONL legible con "
+            "id_evento por línea"
+        ]
+    if fragmento not in ids:
+        return [
+            f"{etiqueta}: referencia_explicacion {referencia!r} apunta a un "
+            f"registro {fragmento!r} que no está en {destino.name}"
         ]
     return []
 

@@ -13,7 +13,8 @@ src/
 │   └── utilidades.py       hashing, tiempo UTC, E/S JSON determinista
 │
 ├── explicabilidad/   Principio 1 — SHAP
-│   ├── atribucion_local.py    valores SHAP por inferencia -> artefacto por evento
+│   ├── atribucion_local.py    SHAP de cada inferencia -> artefacto consolidado
+│   ├── lenguaje.py            atribuciones -> enunciados en lenguaje llano (R3.3)
 │   ├── atribucion_global.py   importancia agregada + figuras
 │   └── reporte.py             consolida el reporte de explicabilidad
 │
@@ -58,7 +59,7 @@ artefactos).
 ## Flujo de datos
 
 ```
-datos/crudos/casas.csv
+datos/crudos/aruba.txt   (leído por el lector de datos.formato)
    │  precondición A
    ▼
 datos/intermedios/caracteristicas.parquet ──► ParticionSupervisada

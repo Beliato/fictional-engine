@@ -268,10 +268,10 @@ def test_detecta_pythonhashseed_divergente(tmp_path):
 def test_el_error_nombra_la_clave_con_notacion_de_punto(tmp_path):
     """Quien lea el error tiene que poder abrir el YAML e ir directo."""
     crudo = _config_valida()
-    crudo["explicabilidad"]["muestras_globales"] = 0
+    crudo["explicabilidad"]["muestras_graficos"] = 0
 
     with pytest.raises(
-        ConfiguracionInvalida, match=r"explicabilidad\.muestras_globales"
+        ConfiguracionInvalida, match=r"explicabilidad\.muestras_graficos"
     ):
         cargar_configuracion(_escribir(tmp_path, crudo))
 

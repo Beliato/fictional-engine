@@ -364,3 +364,97 @@ archivo — el único desempate reproducible disponible.
 
 Verificado que la refactorización no cambió comportamiento: el hash de las
 características sobre Aruba es idéntico antes y después.
+
+
+## D35 — Perturbación `tree_path_dependent`
+SHAP necesita simular la "ausencia" de una característica, y hay dos maneras.
+`tree_path_dependent` sigue la cobertura de los propios árboles;
+`interventional` promedia sobre un conjunto de fondo. Medido sobre el modelo
+de referencia de Aruba (300 árboles, 11 clases):
+
+| Método | Costo | Prueba completa (11.175) |
+|---|---|---|
+| `tree_path_dependent` | 95 ms/inferencia | ~18 min |
+| `interventional`, fondo de 100 | 738 ms/inferencia | ~2,3 h |
+
+Se eligió `tree_path_dependent`: es 8 veces más rápido, determinista y no
+exige elegir —y justificar— un conjunto de fondo. Su costo conceptual queda
+declarado en el reporte: con características correlacionadas puede repartir
+el crédito de forma distinta que un método intervencional. Ambos los define
+Lundberg et al. (2020), que el documento ya cita en el §5.8.
+
+El cargador acepta `interventional`, pero `construir_explainer` lo rechaza con
+`NotImplementedError`, como ya pasa con la partición aleatoria (D24).
+
+## D36 — Toda inferencia de prueba es "relevante"; el artefacto es consolidado
+El R3.1 exige explicar "toda predicción **relevante**" y la Tabla 8 registrar
+"cada inferencia **relevante**", pero el documento nunca define el término.
+En el piloto se consideran relevantes **todas** las inferencias de prueba: el
+criterio de éxito (§5.7) es reconstruir el comportamiento completo del
+sistema, y una selección dejaría decisiones sin explicación.
+**Revisar:** conviene agregar esa definición en el texto de la tesis; un
+tribunal puede preguntar qué es "relevante".
+
+Explicar 11.175 inferencias con un archivo por explicación serían 11.175
+archivos. Se guarda **un JSONL consolidado** con una línea por inferencia, y
+la bitácora referencia `ruta#id_evento`. El verificador de trazabilidad se
+extendió en consecuencia: con un fragmento, que el archivo exista no basta,
+el registro concreto tiene que estar adentro. Si no, la bitácora estaría
+citando una explicación que nadie calculó.
+
+## D37 — La importancia global agrega las locales; `muestras_globales` pasa a `muestras_graficos`
+La Tabla 6 define el R3.2 como la "agregación de las atribuciones locales
+sobre el conjunto de evaluación". Se implementa literalmente: la importancia
+global es la media de |contribución| sobre **todas** las explicaciones
+locales. No hay un segundo cálculo SHAP: local y global son coherentes por
+construcción y el costo no se paga dos veces.
+
+Eso deja sin función el viejo `muestras_globales`, que decía cuántas filas se
+usaban para la atribución global. Se **renombró** a `muestras_graficos` en
+lugar de reinterpretarlo en silencio: ahora solo dice cuántos puntos se
+dibujan en los gráficos de dependencia. Un nombre que afirma algo falso sobre
+el cálculo es peor que un cambio incompatible en la configuración.
+
+## D38 — Se explica la clase predicha, y la aditividad se comprueba
+Un bosque multiclase produce una atribución por clase (19 × 11 valores por
+inferencia). Se guarda la de la **clase predicha**, que es la que la
+bitácora registra.
+
+En un bosque de sklearn la atribución es exactamente aditiva:
+`valor_base + Σ contribuciones = P(clase predicha)`, que es la confianza de
+la bitácora. `calcular_explicaciones` lo comprueba para cada inferencia antes
+de devolverla y lanza `AtribucionIncoherente` si alguna no suma. Cada
+explicación trae así su propia prueba de que corresponde a la inferencia que
+dice explicar.
+
+## D39 — Enunciados en lenguaje llano por convención de nombres (R3.3)
+`lenguaje.py` traduce las atribuciones dominantes a frases del tipo "Pesó a
+favor: 9 activaciones de movimiento en Kitchen y la hora del día (8 h)". Se
+construyen a partir de la convención de nombres de características de
+`datos.py` (`conteo_<zona>`, `temp_<sensor>`...), que es del marco y no de un
+dataset, así que valen para cualquier sistema que entre por el contrato de
+ingesta.
+**Revisar:** los nombres de zona salen de `datos.zonas` y en Aruba están en
+inglés. Para cuidadores hispanohablantes conviene un mapeo de nombres para
+mostrar; queda como limitación declarada en el reporte.
+
+## D40 — Figuras según el método de visualización del proyecto
+La importancia global es una magnitud sobre categorías sin orden natural:
+barras horizontales ordenadas, **una sola serie en un solo color**, sin
+leyenda (el título dice qué se grafica), barras de 24 px como máximo con el
+extremo de dato redondeado, grilla en línea fina recesiva y etiquetas
+directas solo en las características destacadas. El texto va en tinta, nunca
+en el color de la serie, y la tabla de valores acompaña a cada figura en el
+reporte como equivalente accesible.
+
+Se usa la API orientada a objetos de matplotlib, sin `pyplot` (que tiene
+estado global), con tamaño, DPI y metadatos fijos: dos corridas equivalentes
+producen PNG idénticos byte a byte y el manifiesto puede hashearlos.
+
+## D41 — Las plantillas de artefacto se rellenan en modo estricto
+`rellenar_plantilla` falla si a un marcador `{{clave}}` le falta valor, y
+también si se le pasa un valor que la plantilla no declara. Lo primero
+dejaría `{{tabla}}` literal en un artefacto que va a un auditor; lo segundo
+delata que se está rellenando la plantilla equivocada. Es el mismo criterio
+del cargador de configuración (D14), y lo van a usar todos los artefactos
+del paso 5.

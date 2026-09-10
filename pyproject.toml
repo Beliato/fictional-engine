@@ -10,4 +10,14 @@ markers = [
     "integracion: prueba que ejecuta un paso o el pipeline de extremo a extremo",
     "lento: prueba que tarda (entrenamiento real, SHAP sobre muchas filas)",
 ]
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # matplotlib 3.8.4 (fijado en requirements.txt) llama a la API vieja de
+    # pyparsing, que desde la 3.3 la marca como obsoleta. pyparsing es una
+    # dependencia transitiva sin fijar y requirements.lock todavía no existe,
+    # así que pip trae la versión nueva. Se ignora SOLO esta categoría, que es
+    # ruido de un tercero: cualquier otra advertencia sigue siendo error (D10).
+    # Se puede retirar fijando pyparsing a una versión contemporánea de
+    # matplotlib 3.8.4 (3.1.x) al generar requirements.lock.
+    "ignore::pyparsing.warnings.PyparsingDeprecationWarning",
+]

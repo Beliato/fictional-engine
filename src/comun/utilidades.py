@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -64,3 +65,38 @@ def asegurar_directorio(ruta: str | Path) -> Path:
     directorio = Path(ruta)
     directorio.mkdir(parents=True, exist_ok=True)
     return directorio
+
+
+# Marcador de plantilla de artefacto: `{{clave}}`, con espacios opcionales.
+_MARCADOR = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}")
+
+
+def rellenar_plantilla(texto: str, valores: dict[str, str]) -> str:
+    """Sustituye los marcadores `{{clave}}` de una plantilla de artefacto.
+
+    Es estricta en las dos direcciones, por la misma razón que el cargador de
+    configuración: un marcador sin valor dejaría `{{tabla}}` literal en un
+    artefacto que va a un auditor, y un valor que la plantilla no declara
+    delata que se está rellenando la plantilla equivocada. La sustitución es
+    de una sola pasada: un valor que contenga `{{...}}` no se vuelve a
+    expandir.
+
+    Raises:
+        PlantillaIncompleta: si falta el valor de algún marcador o sobra uno
+            que la plantilla no declara.
+    """
+    declarados = set(_MARCADOR.findall(texto))
+    faltantes = declarados - valores.keys()
+    sobrantes = valores.keys() - declarados
+    if faltantes or sobrantes:
+        partes = []
+        if faltantes:
+            partes.append(f"sin valor: {sorted(faltantes)}")
+        if sobrantes:
+            partes.append(f"no declarados en la plantilla: {sorted(sobrantes)}")
+        raise PlantillaIncompleta("; ".join(partes))
+    return _MARCADOR.sub(lambda m: str(valores[m.group(1)]), texto)
+
+
+class PlantillaIncompleta(ValueError):
+    """Una plantilla de artefacto no se pudo rellenar por completo."""

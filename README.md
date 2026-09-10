@@ -21,6 +21,8 @@ declaradas, ejecución determinista y sin estado oculto.
 > - `src/comun/datos.py` — características por zona y partición temporal.
 > - `src/comun/modelado.py` — construcción, entrenamiento determinista,
 >   sellado y persistencia del modelo.
+> - `src/explicabilidad/` — **Principio 1**: atribución SHAP de cada
+>   inferencia, importancia global, enunciados en lenguaje llano y reporte.
 > - `src/trazabilidad/` — **Principio 3 completo**: esquema, escritor
 >   append-only y verificación de integridad y cobertura.
 
