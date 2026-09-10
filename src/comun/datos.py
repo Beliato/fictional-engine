@@ -1,18 +1,17 @@
-"""Carga, validación y partición determinista del dataset CASAS.
+"""Validación, características y partición determinista de eventos de sensores.
 
-El dataset CASAS son eventos de sensores de monitoreo domiciliario. Este
-módulo no descarga datos: espera el archivo crudo en la ruta declarada en
-`config.yaml` (`datos.archivo_crudo`) y documenta su procedencia en el
-datasheet.
+Este módulo **no sabe de qué dataset provienen los datos**. Recibe eventos ya
+normalizados según el contrato de `src.comun.lectores` —marca temporal,
+sensor, valor y actividad— y todo lo que hace vale igual para cualquier
+sistema de sensores pasivos.
 
-Formato del crudo (Aruba), un evento por línea, campos separados por espacios:
+Lo propio de cada formato de origen vive en un lector, no aquí. Aplicar el
+marco a otro dataset PIR no requiere tocar este archivo: ver
+`docs/aplicar-a-otro-dataset.md`.
 
-    2010-11-04 00:03:50.209589 M003 ON Sleeping begin
-    2010-11-04 00:03:57.399391 M003 OFF
-
-La anotación de actividad marca el inicio y el fin de un intervalo. Los
-eventos intermedios no llevan etiqueta: heredan la actividad abierta. Los
-eventos fuera de todo intervalo reciben `actividades.etiqueta_sin_actividad`.
+Este módulo tampoco descarga datos: espera el archivo crudo en la ruta
+declarada en `config.yaml` (`datos.archivo_crudo`) y su procedencia se
+documenta en el datasheet.
 
 Representación de modelado
 --------------------------
@@ -26,23 +25,16 @@ lo es. El mapeo vive en `config.datos.zonas`.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from src.comun.lectores import leer_eventos
 from src.comun.utilidades import hash_sha256
 
 if TYPE_CHECKING:
-    from src.comun.configuracion import Configuracion
-
-# Franjas horarias, por hora de inicio inclusive. Definen el subgrupo de
-# equidad `franja_horaria`.
-_FRANJAS = ((0, "madrugada"), (6, "mañana"), (12, "tarde"), (18, "noche"))
-
-_MARCAS_ANOTACION = ("begin", "end")
+    from src.comun.configuracion import Configuracion, FranjaHoraria
 
 
 @dataclass(frozen=True)
@@ -59,12 +51,12 @@ class ParticionSupervisada:
 
 
 def cargar_crudo(config: "Configuracion") -> "pd.DataFrame":
-    """Carga el archivo crudo de CASAS y propaga la anotación de actividad.
+    """Lee el crudo con el lector declarado en `config.datos.formato`.
 
-    No se usa `pandas.read_csv`: el crudo tiene un número variable de campos
-    por línea (4 sin anotación, 6 con ella) y separadores irregulares, así que
-    se parsea explícitamente. Parsear a mano también permite contar las líneas
-    descartadas en vez de que desaparezcan en silencio.
+    Delega en `src.comun.lectores.leer_eventos`, que instancia el adaptador
+    del formato y **verifica el contrato** sobre lo que devuelve. Este módulo
+    no conoce ningún formato de origen: esa es la condición para que el marco
+    se aplique a otros datasets sin modificarlo.
 
     Args:
         config: configuración del marco.
@@ -75,68 +67,11 @@ def cargar_crudo(config: "Configuracion") -> "pd.DataFrame":
 
     Raises:
         FileNotFoundError: si no existe `config.datos.archivo_crudo`.
-        EsquemaDatosInvalido: si el archivo no contiene ningún evento
-            utilizable.
+        FormatoNoReconocido: si el formato no está registrado, o el archivo
+            no corresponde al formato declarado.
+        ContratoIncumplido: si el lector devolvió algo fuera de contrato.
     """
-    ruta = Path(config.datos.archivo_crudo)
-    if not ruta.is_file():
-        raise FileNotFoundError(f"no existe el archivo crudo: {ruta}")
-
-    conocidos = (
-        set(config.datos.columnas_sensor_pir)
-        | set(config.datos.sensores_puerta)
-        | set(config.datos.sensores_temperatura)
-    )
-    etiqueta_vacia = config.datos.actividades.etiqueta_sin_actividad
-
-    marcas: list[str] = []
-    sensores: list[str] = []
-    valores: list[str] = []
-    actividades: list[str] = []
-    abierta = etiqueta_vacia
-    descartadas = 0
-
-    with ruta.open("r", encoding="utf-8", errors="replace") as f:
-        for linea in f:
-            campos = re.split(r"\s+", linea.strip())
-            if len(campos) < 4 or campos[2] not in conocidos:
-                # Aruba trae unas pocas líneas donde el nombre de la actividad
-                # se coló en la columna de sensor. Se descartan y se cuentan.
-                if linea.strip():
-                    descartadas += 1
-                continue
-            fecha, hora, sensor, valor = campos[:4]
-            marcas.append(f"{fecha} {hora}")
-            sensores.append(sensor)
-            valores.append(valor)
-
-            # La anotación abre y cierra intervalos. El evento que cierra
-            # pertenece todavía a la actividad que termina.
-            actividades.append(abierta)
-            if len(campos) >= 6 and campos[-1].lower() in _MARCAS_ANOTACION:
-                nombre = " ".join(campos[4:-1])
-                if campos[-1].lower() == "begin":
-                    abierta = nombre
-                    actividades[-1] = nombre
-                else:
-                    abierta = etiqueta_vacia
-
-    if not marcas:
-        raise EsquemaDatosInvalido(
-            f"{ruta}: no se encontró ningún evento con un sensor declarado en "
-            "config.datos; ¿es el archivo correcto?"
-        )
-
-    df = pd.DataFrame(
-        {
-            "marca_temporal": pd.to_datetime(marcas, format="mixed"),
-            "sensor": sensores,
-            "valor": valores,
-            "actividad": actividades,
-        }
-    )
-    df.attrs["lineas_descartadas"] = descartadas
-    return df.sort_values("marca_temporal", kind="stable").reset_index(drop=True)
+    return leer_eventos(config)
 
 
 def validar_esquema(df: "pd.DataFrame", config: "Configuracion") -> None:
@@ -194,12 +129,17 @@ def validar_esquema(df: "pd.DataFrame", config: "Configuracion") -> None:
         )
 
 
-def franja_horaria(hora: int) -> str:
-    """Devuelve la franja horaria a la que pertenece `hora` (0-23)."""
-    etiqueta = _FRANJAS[0][1]
-    for inicio, nombre in _FRANJAS:
-        if hora >= inicio:
-            etiqueta = nombre
+def franja_horaria(hora: int, franjas: "tuple[FranjaHoraria, ...]") -> str:
+    """Devuelve la franja horaria a la que pertenece `hora` (0-23).
+
+    Las franjas vienen de `config.datos.franjas_horarias`. Son una decisión
+    de dominio, no una constante: un servicio con turnos de noche distintos
+    querría otros cortes, y ese cambio no debería exigir tocar código.
+    """
+    etiqueta = franjas[0].nombre
+    for franja in franjas:
+        if hora >= franja.desde:
+            etiqueta = franja.nombre
     return etiqueta
 
 
@@ -282,7 +222,8 @@ def construir_caracteristicas(
         marca - primero["marca_temporal"]
     ).dt.total_seconds()
     caracteristicas["franja_horaria"] = [
-        franja_horaria(h) for h in caracteristicas["hora_del_dia"]
+        franja_horaria(h, config.datos.franjas_horarias)
+        for h in caracteristicas["hora_del_dia"]
     ]
     caracteristicas["tipo_dia"] = caracteristicas["dia_semana"].map(
         lambda d: "fin_de_semana" if d >= 5 else "laborable"

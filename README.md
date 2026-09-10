@@ -17,8 +17,8 @@ declaradas, ejecución determinista y sin estado oculto.
 >
 > - `src/comun/configuracion.py` — carga y validación de `config.yaml`.
 > - `src/comun/utilidades.py` — hashing, tiempo UTC, E/S JSON determinista.
-> - `src/comun/datos.py` — carga de Aruba, características por zona y
->   partición temporal.
+> - `src/comun/lectores.py` — contrato de ingesta y lector de CASAS.
+> - `src/comun/datos.py` — características por zona y partición temporal.
 > - `src/comun/modelado.py` — construcción, entrenamiento determinista,
 >   sellado y persistencia del modelo.
 > - `src/trazabilidad/` — **Principio 3 completo**: esquema, escritor
@@ -110,7 +110,7 @@ Detalle en [`docs/arquitectura.md`](docs/arquitectura.md).
 
 ```
 src/
-├── comun/            configuración, datos, modelado, semillas, utilidades
+├── comun/            configuración, lectores, datos, modelado, utilidades
 ├── explicabilidad/   Principio 1 — atribución SHAP local y global
 ├── equidad/          Principio 2 — desempeño desagregado + métricas fairlearn
 ├── trazabilidad/     Principio 3 — registro JSONL + verificación
@@ -207,3 +207,4 @@ SHA-256 de la fila de entrada — no se guardan datos crudos), `salida_modelo`,
 - [`docs/arquitectura.md`](docs/arquitectura.md) — módulos, principios de diseño, flujo de datos.
 - [`docs/marco_operativo.md`](docs/marco_operativo.md) — los 6 pasos y la articulación normativa.
 - [`docs/decisiones.md`](docs/decisiones.md) — decisiones tomadas al montar el esqueleto, para revisar.
+- [`docs/aplicar-a-otro-dataset.md`](docs/aplicar-a-otro-dataset.md) — **el contrato de ingesta**: qué debe aportar un equipo para evaluar su propio sistema con este marco.

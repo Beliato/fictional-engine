@@ -43,6 +43,14 @@ class ParticionDatos:
 
 
 @dataclass(frozen=True)
+class FranjaHoraria:
+    """Un tramo del día, por su hora de inicio inclusive."""
+
+    desde: int
+    nombre: str
+
+
+@dataclass(frozen=True)
 class ConfigVentana:
     n_eventos: int
 
@@ -57,12 +65,14 @@ class ConfigActividades:
 class ConfigDatos:
     fuente: str
     archivo_crudo: Path
+    formato: str
     columna_objetivo: str
     columnas_sensor_pir: tuple[str, ...]
     sensores_puerta: tuple[str, ...]
     sensores_temperatura: tuple[str, ...]
     zonas: dict[str, str]
     actividades: ConfigActividades
+    franjas_horarias: tuple[FranjaHoraria, ...]
     ventana: ConfigVentana
     particion: ParticionDatos
 
@@ -254,6 +264,52 @@ def _leer_rutas(crudo: dict[str, Any], raiz: Path) -> Rutas:
     )
 
 
+def _leer_franjas(crudo: Any) -> tuple[FranjaHoraria, ...]:
+    """Lee y valida los cortes horarios que definen `franja_horaria`.
+
+    Se exige que cubran el día entero empezando en 0 y que los cortes sean
+    estrictamente ascendentes. Un hueco dejaría horas sin franja, y una fila
+    sin subgrupo desaparecería del análisis desagregado sin que nadie lo note.
+    """
+    elementos = _tipo(crudo, list, "datos.franjas_horarias")
+    if not elementos:
+        raise ConfiguracionInvalida(
+            "datos.franjas_horarias: debe declararse al menos una franja"
+        )
+
+    franjas: list[FranjaHoraria] = []
+    nombres: set[str] = set()
+    for i, elemento in enumerate(elementos):
+        contexto = f"datos.franjas_horarias[{i}]"
+        mapa = _exigir_mapa(elemento, contexto)
+        _claves(mapa, {"desde", "nombre"}, contexto)
+        desde = _tipo(mapa["desde"], int, f"{contexto}.desde")
+        if not 0 <= desde <= 23:
+            raise ConfiguracionInvalida(
+                f"{contexto}.desde: debe estar en [0, 23], se recibió {desde}"
+            )
+        nombre = _texto_no_vacio(mapa["nombre"], f"{contexto}.nombre")
+        if nombre in nombres:
+            raise ConfiguracionInvalida(
+                f"{contexto}.nombre: {nombre!r} está duplicado"
+            )
+        if franjas and desde <= franjas[-1].desde:
+            raise ConfiguracionInvalida(
+                f"{contexto}.desde: los cortes deben ser ascendentes; "
+                f"{desde} no es mayor que {franjas[-1].desde}"
+            )
+        nombres.add(nombre)
+        franjas.append(FranjaHoraria(desde=desde, nombre=nombre))
+
+    if franjas[0].desde != 0:
+        raise ConfiguracionInvalida(
+            f"datos.franjas_horarias: la primera franja debe empezar en 0, "
+            f"empieza en {franjas[0].desde}; las horas anteriores quedarían "
+            "sin franja"
+        )
+    return tuple(franjas)
+
+
 def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
     bloque = _exigir_mapa(crudo, "datos")
     _claves(
@@ -261,17 +317,21 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
         {
             "fuente",
             "archivo_crudo",
+            "formato",
             "columna_objetivo",
             "columnas_sensor_pir",
             "sensores_puerta",
             "sensores_temperatura",
             "zonas",
             "actividades",
+            "franjas_horarias",
             "ventana",
             "particion",
         },
         "datos",
     )
+
+    franjas = _leer_franjas(bloque["franjas_horarias"])
 
     particion = _exigir_mapa(bloque["particion"], "datos.particion")
     _claves(particion, {"estrategia", "test_size"}, "datos.particion")
@@ -332,9 +392,11 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
     return ConfigDatos(
         fuente=_texto_no_vacio(bloque["fuente"], "datos.fuente"),
         archivo_crudo=_ruta(bloque["archivo_crudo"], raiz, "datos.archivo_crudo"),
+        formato=_texto_no_vacio(bloque["formato"], "datos.formato"),
         columna_objetivo=_texto_no_vacio(
             bloque["columna_objetivo"], "datos.columna_objetivo"
         ),
+        franjas_horarias=franjas,
         columnas_sensor_pir=pir,
         sensores_puerta=_lista_de_textos(
             bloque["sensores_puerta"], "datos.sensores_puerta"
@@ -554,7 +616,7 @@ def cargar_configuracion(ruta: str | Path = "config.yaml") -> Configuracion:
         for principio, mapa in articulacion_cruda.items()
     }
 
-    return Configuracion(
+    config = Configuracion(
         version_marco=_texto_no_vacio(crudo["version_marco"], "version_marco"),
         semilla=semilla,
         pythonhashseed=_tipo(
@@ -570,6 +632,28 @@ def cargar_configuracion(ruta: str | Path = "config.yaml") -> Configuracion:
         articulacion_normativa=articulacion,
         crudo=crudo,
     )
+    _verificar_coherencia_entre_bloques(config)
+    return config
+
+
+def _verificar_coherencia_entre_bloques(config: "Configuracion") -> None:
+    """Comprueba acuerdos que cruzan más de un bloque del YAML.
+
+    Cada bloque puede ser válido por separado y el conjunto ser incoherente.
+    Estas discrepancias no rompen nada al cargar: reaparecen como una tabla
+    vacía o una categoría ausente en el reporte de equidad, ya tarde.
+    """
+    nombres_franja = {f.nombre for f in config.datos.franjas_horarias}
+    for subgrupo in config.equidad.subgrupos:
+        if subgrupo.columna != "franja_horaria" or not subgrupo.categorias:
+            continue
+        declaradas = set(subgrupo.categorias)
+        if declaradas != nombres_franja:
+            raise ConfiguracionInvalida(
+                f"equidad.subgrupos[{subgrupo.nombre}].categorias "
+                f"{sorted(declaradas)} no coincide con los nombres de "
+                f"datos.franjas_horarias {sorted(nombres_franja)}"
+            )
 
 
 # Claves de hiperparámetro que fijan aleatoriedad. No es configuración del
