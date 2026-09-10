@@ -24,12 +24,39 @@ def config(ruta_config):
 
 
 @pytest.fixture
-def datos_sinteticos():
-    """DataFrame pequeño y determinista que imita el esquema de CASAS.
+def crudo_sintetico():
+    """Genera un crudo determinista con el formato de Aruba.
 
-    Útil para probar pasos sin descargar el dataset real.
-
-    TODO: construir con `numpy.random.default_rng(0)` un DataFrame con
-        columnas de sensores PIR, marca temporal y actividad.
+    La batería no puede depender del dataset real: pesa 61 MB, está fuera de
+    git y su licencia prohíbe redistribuirlo. Este generador produce el mismo
+    formato —incluidos los spans `begin`/`end`— sobre un puñado de días.
     """
-    pytest.skip("TODO: construir datos sintéticos con el esquema de CASAS")
+
+    def generar(dias: int = 10, eventos_por_dia: int = 120) -> str:
+        import numpy as np
+
+        rng = np.random.default_rng(0)
+        sensores = [f"M{n:03d}" for n in range(1, 32)]
+        lineas = []
+        for d in range(dias):
+            fecha = f"2010-11-{d + 1:02d}"
+            segundo = 0
+            for i in range(eventos_por_dia):
+                segundo += int(rng.integers(5, 60))
+                hora = f"{segundo // 3600 % 24:02d}:{segundo // 60 % 60:02d}:{segundo % 60:02d}.000000"
+                sensor = sensores[int(rng.integers(0, len(sensores)))]
+                # Un span de actividad cada 40 eventos, de 20 de largo.
+                sufijo = ""
+                if i % 40 == 0:
+                    sufijo = " Sleeping begin"
+                elif i % 40 == 20:
+                    sufijo = " Sleeping end"
+                lineas.append(f"{fecha} {hora} {sensor} ON{sufijo}")
+            for t in range(1, 6):
+                lineas.append(
+                    f"{fecha} 23:5{t}:00.000000 T00{t} {20 + t / 2:.1f}"
+                )
+            lineas.append(f"{fecha} 23:59:30.000000 D001 OPEN")
+        return "\n".join(lineas) + "\n"
+
+    return generar

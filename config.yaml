@@ -42,16 +42,85 @@ rutas:
 
 # --- Dataset ----------------------------------------------------------------
 datos:
-  fuente: "CASAS (http://casas.wsu.edu/datasets/)"
-  archivo_crudo: datos/crudos/casas.csv
-  # Columna con la etiqueta de actividad a predecir.
+  fuente: >-
+    CASAS Aruba (WSU CASAS smart home project). Residente única: mujer adulta
+    voluntaria; hijos y nietos la visitan con regularidad. 2010-11-04 a
+    2011-06-11. Citar: D. Cook, "Learning setting-generalized activity models
+    for smart spaces", IEEE Intelligent Systems, 2011. La licencia del dataset
+    prohíbe redistribuirlo sin permiso expreso de CASAS.
+  archivo_crudo: datos/crudos/aruba.txt
+  # Columna objetivo del cuadro de características que produce `datos.py`.
   columna_objetivo: actividad
-  # Columnas correspondientes a sensores PIR de movimiento. TODO: completar
-  # tras inspeccionar el dataset concreto que se use.
-  columnas_sensor_pir: []
+
+  # Sensores presentes en el crudo, por tipo.
+  columnas_sensor_pir: [M001, M002, M003, M004, M005, M006, M007, M008, M009, M010, M011, M012, M013, M014, M015, M016, M017, M018, M019, M020, M021, M022, M023, M024, M025, M026, M027, M028, M029, M030, M031]
+  sensores_puerta: [D001, D002, D004]
+  sensores_temperatura: [T001, T002, T003, T004, T005]
+
+  # Mapeo sensor -> zona del hogar. Derivado por correspondencia temporal con
+  # el release consolidado oficial de CASAS, que generaliza los sensores a
+  # nombres de habitación: 1.596.509 eventos coincidentes, 100 % de acuerdo y
+  # cero ambigüedad. Da nombres legibles por un cuidador, que es lo que exige
+  # el R3.3; "M009" no significa nada para un destinatario no técnico.
+  zonas:
+    D001: OutsideDoor
+    D002: OutsideDoor
+    D004: OutsideDoor
+    M001: Bedroom
+    M002: Bedroom
+    M003: Bedroom
+    M004: Bathroom
+    M005: Bedroom
+    M006: Bedroom
+    M007: Bedroom
+    M008: OtherRoom
+    M009: LoungeChair
+    M010: LoungeChair
+    M011: OutsideDoor
+    M012: LivingRoom
+    M013: LivingRoom
+    M014: DiningRoom
+    M015: Kitchen
+    M016: Kitchen
+    M017: Kitchen
+    M018: Kitchen
+    M019: Kitchen
+    M020: LivingRoom
+    M021: GuestRoom
+    M022: GuestRoom
+    M023: GuestRoom
+    M024: Bathroom
+    M025: WorkArea
+    M026: WorkArea
+    M027: WorkArea
+    M028: WorkArea
+    M029: Bathroom
+    M030: OutsideDoor
+    M031: OtherRoom
+
+  actividades:
+    # Los eventos fuera de todo span anotado (53,5 % del crudo) forman su
+    # propia clase en vez de descartarse: son el comportamiento real del hogar
+    # y omitirlos sesgaría el modelo hacia un día idealizado.
+    etiqueta_sin_actividad: Otro
+    # `Respirate` tiene 6 instancias en todo el dataset. Con seis ejemplos no
+    # se puede partir ni evaluar de forma sensata.
+    excluidas: [Respirate]
+
+  ventana:
+    # Nº de eventos consecutivos que forman una ventana de observación.
+    # Ventanas disjuntas: no se solapan, para que no haya fuga entre filas.
+    n_eventos: 30
+
   particion:
+    # Partición TEMPORAL por día, no aleatoria. Los eventos están ordenados en
+    # el tiempo y son fuertemente autocorrelacionados: una partición aleatoria
+    # deja eventos contiguos del mismo segmento de actividad a ambos lados y
+    # produce una exactitud optimista. Sobre una exactitud inflada se calculan
+    # después la explicabilidad y la equidad, así que la fuga contaminaría el
+    # expediente entero.
+    estrategia: temporal_por_dia
     test_size: 0.2
-    estratificar: true
 
 # --- Modelo ----------------------------------------------------------------
 modelo:
@@ -79,14 +148,31 @@ explicabilidad:
 # --- Principio 2: Equidad -------------------------------------------------
 equidad:
   # Subgrupos de comparación. Cada entrada referencia una columna presente
-  # tras la preparación de datos (paso 1 del marco).
+  # tras la preparación de datos.
+  #
+  # LIMITACIÓN DECLARADA. El R4.1 pide desagregar "entre subgrupos de la
+  # población monitoreada", pero Aruba tiene UNA residente: no existen
+  # subgrupos poblacionales, y por eso se retiró `residente_id`, que
+  # colapsaría a un único valor. Los dos subgrupos de abajo son CONTEXTUALES,
+  # no poblacionales: miden si el sistema funciona igual de bien en distintas
+  # condiciones, no si discrimina entre personas. Satisfacen el R4.1 solo de
+  # forma parcial, y el reporte de equidad debe decirlo. Cerrar esa brecha
+  # exige datos anotados de varios hogares (Milan, Cairo, Tulum).
+  #
+  # Advertencia adicional para el reporte: `franja_horaria` se deriva de la
+  # hora, y la hora es además una variable de entrada del modelo. Parte de la
+  # disparidad entre franjas es por diseño, no un sesgo emergente.
   subgrupos:
     - nombre: franja_horaria
       columna: franja_horaria
       categorias: [madrugada, mañana, tarde, noche]
-    - nombre: residente
-      columna: residente_id
-      categorias: []          # vacío => se infieren de los datos
+    # Los hijos y nietos de la residente la visitaban con regularidad, así que
+    # el fin de semana concentra eventos de sensor que no son suyos. Un
+    # sistema que degrada con visitas es un problema real de un servicio de
+    # monitoreo domiciliario, no una curiosidad estadística.
+    - nombre: tipo_dia
+      columna: tipo_dia
+      categorias: [laborable, fin_de_semana]
   # Umbrales PRE-DECLARADOS. Si una métrica excede su umbral => veredicto FALLA.
   umbrales:
     demographic_parity_difference: 0.10

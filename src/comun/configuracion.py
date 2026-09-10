@@ -29,10 +29,28 @@ import yaml
 # ejecución (el estado de configuración no debe cambiar tras la carga).
 
 
+# Estrategias de partición admitidas. `temporal_por_dia` reserva los últimos
+# días para prueba; `aleatoria_estratificada` reparte filas al azar, lo que
+# sobre eventos autocorrelacionados produce fuga temporal y exactitud
+# optimista. Se admite la segunda solo para poder contrastar el efecto.
+ESTRATEGIAS_PARTICION = ("temporal_por_dia", "aleatoria_estratificada")
+
+
 @dataclass(frozen=True)
 class ParticionDatos:
+    estrategia: str
     test_size: float
-    estratificar: bool
+
+
+@dataclass(frozen=True)
+class ConfigVentana:
+    n_eventos: int
+
+
+@dataclass(frozen=True)
+class ConfigActividades:
+    etiqueta_sin_actividad: str
+    excluidas: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -41,7 +59,21 @@ class ConfigDatos:
     archivo_crudo: Path
     columna_objetivo: str
     columnas_sensor_pir: tuple[str, ...]
+    sensores_puerta: tuple[str, ...]
+    sensores_temperatura: tuple[str, ...]
+    zonas: dict[str, str]
+    actividades: ConfigActividades
+    ventana: ConfigVentana
     particion: ParticionDatos
+
+    def zona_de(self, sensor: str) -> str | None:
+        """Zona del hogar donde está `sensor`, o None si no está mapeado."""
+        return self.zonas.get(sensor)
+
+    @property
+    def zonas_distintas(self) -> tuple[str, ...]:
+        """Zonas presentes, en orden estable (define el orden de columnas)."""
+        return tuple(sorted(set(self.zonas.values())))
 
 
 @dataclass(frozen=True)
@@ -231,13 +263,26 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
             "archivo_crudo",
             "columna_objetivo",
             "columnas_sensor_pir",
+            "sensores_puerta",
+            "sensores_temperatura",
+            "zonas",
+            "actividades",
+            "ventana",
             "particion",
         },
         "datos",
     )
-    particion = _exigir_mapa(bloque["particion"], "datos.particion")
-    _claves(particion, {"test_size", "estratificar"}, "datos.particion")
 
+    particion = _exigir_mapa(bloque["particion"], "datos.particion")
+    _claves(particion, {"estrategia", "test_size"}, "datos.particion")
+    estrategia = _texto_no_vacio(
+        particion["estrategia"], "datos.particion.estrategia"
+    )
+    if estrategia not in ESTRATEGIAS_PARTICION:
+        raise ConfiguracionInvalida(
+            f"datos.particion.estrategia: {estrategia!r} no es una estrategia "
+            f"conocida; use una de {list(ESTRATEGIAS_PARTICION)}"
+        )
     test_size = _tipo(particion["test_size"], float, "datos.particion.test_size")
     if not 0.0 < test_size < 1.0:
         raise ConfiguracionInvalida(
@@ -245,24 +290,70 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
             f"{test_size}"
         )
 
-    # `columnas_sensor_pir` puede venir vacía: solo se puede completar tras
-    # inspeccionar el dataset concreto. Quien consuma los datos es responsable
-    # de exigirla no vacía; aquí sería prematuro.
+    ventana = _exigir_mapa(bloque["ventana"], "datos.ventana")
+    _claves(ventana, {"n_eventos"}, "datos.ventana")
+    n_eventos = _tipo(ventana["n_eventos"], int, "datos.ventana.n_eventos")
+    if n_eventos < 2:
+        raise ConfiguracionInvalida(
+            f"datos.ventana.n_eventos: debe ser >= 2, se recibió {n_eventos}"
+        )
+
+    actividades = _exigir_mapa(bloque["actividades"], "datos.actividades")
+    _claves(
+        actividades,
+        {"etiqueta_sin_actividad", "excluidas"},
+        "datos.actividades",
+    )
+
+    zonas_crudas = _exigir_mapa(bloque["zonas"], "datos.zonas")
+    if not zonas_crudas:
+        raise ConfiguracionInvalida(
+            "datos.zonas: el mapeo sensor -> zona no puede estar vacío; sin él "
+            "las explicaciones nombran sensores en vez de lugares (R3.3)"
+        )
+    zonas = {
+        _texto_no_vacio(s, "datos.zonas (clave)"): _texto_no_vacio(
+            z, f"datos.zonas.{s}"
+        )
+        for s, z in zonas_crudas.items()
+    }
+
+    pir = _lista_de_textos(
+        bloque["columnas_sensor_pir"], "datos.columnas_sensor_pir"
+    )
+    # Un sensor PIR sin zona produciría una característica anónima en el
+    # reporte de explicabilidad, que es justo lo que el R3.3 quiere evitar.
+    sin_zona = [s for s in pir if s not in zonas]
+    if sin_zona:
+        raise ConfiguracionInvalida(
+            f"datos.zonas: faltan zonas para los sensores PIR {sin_zona}"
+        )
+
     return ConfigDatos(
         fuente=_texto_no_vacio(bloque["fuente"], "datos.fuente"),
         archivo_crudo=_ruta(bloque["archivo_crudo"], raiz, "datos.archivo_crudo"),
         columna_objetivo=_texto_no_vacio(
             bloque["columna_objetivo"], "datos.columna_objetivo"
         ),
-        columnas_sensor_pir=_lista_de_textos(
-            bloque["columnas_sensor_pir"], "datos.columnas_sensor_pir"
+        columnas_sensor_pir=pir,
+        sensores_puerta=_lista_de_textos(
+            bloque["sensores_puerta"], "datos.sensores_puerta"
         ),
-        particion=ParticionDatos(
-            test_size=test_size,
-            estratificar=_tipo(
-                particion["estratificar"], bool, "datos.particion.estratificar"
+        sensores_temperatura=_lista_de_textos(
+            bloque["sensores_temperatura"], "datos.sensores_temperatura"
+        ),
+        zonas=zonas,
+        actividades=ConfigActividades(
+            etiqueta_sin_actividad=_texto_no_vacio(
+                actividades["etiqueta_sin_actividad"],
+                "datos.actividades.etiqueta_sin_actividad",
+            ),
+            excluidas=_lista_de_textos(
+                actividades["excluidas"], "datos.actividades.excluidas"
             ),
         ),
+        ventana=ConfigVentana(n_eventos=n_eventos),
+        particion=ParticionDatos(estrategia=estrategia, test_size=test_size),
     )
 
 

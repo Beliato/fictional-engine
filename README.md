@@ -17,6 +17,8 @@ declaradas, ejecución determinista y sin estado oculto.
 >
 > - `src/comun/configuracion.py` — carga y validación de `config.yaml`.
 > - `src/comun/utilidades.py` — hashing, tiempo UTC, E/S JSON determinista.
+> - `src/comun/datos.py` — carga de Aruba, características por zona y
+>   partición temporal.
 > - `src/trazabilidad/` — **Principio 3 completo**: esquema, escritor
 >   append-only y verificación de integridad y cobertura.
 
@@ -40,15 +42,44 @@ make lock           # congela el cierre transitivo -> requirements.lock (versió
 
 ## Datos
 
-El dataset CASAS **no** se versiona. Descárguelo de
-<http://casas.wsu.edu/datasets/> y coloque el CSV en:
+El dataset **no se versiona** y **no puede redistribuirse**: la licencia de
+CASAS exige permiso expreso. Coloque el crudo anotado de Aruba en:
 
 ```
-datos/crudos/casas.csv
+datos/crudos/aruba.txt
 ```
 
-La ruta y el nombre están en `config.yaml` (`datos.archivo_crudo`). La
-procedencia y composición se documentan en `plantillas/datasheet.md`.
+La ruta está en `config.yaml` (`datos.archivo_crudo`). Los datasets de CASAS
+se publican hoy en [Zenodo](https://zenodo.org/communities/casas); los
+enlaces directos del sitio antiguo devuelven 404.
+
+**Formato esperado** — un evento por línea, campos separados por espacios; la
+anotación marca el inicio y el fin de cada intervalo de actividad:
+
+```
+2010-11-04 00:03:50.209589 M003 ON Sleeping begin
+2010-11-04 00:03:57.399391 M003 OFF
+```
+
+Aruba son 1.719.552 eventos utilizables entre 2010-11-04 y 2011-06-11, con 31
+sensores PIR (`M001`-`M031`), 3 de puerta y 5 de temperatura, y 11 actividades
+anotadas. Procedencia y composición se documentan en
+`plantillas/datasheet.md`; las decisiones de preparación, en
+[`docs/decisiones.md`](docs/decisiones.md) (D21-D26).
+
+### Características
+
+Los eventos se agrupan en ventanas disjuntas de 30 y cada ventana produce una
+fila. Las características se nombran **por zona del hogar**
+(`conteo_Kitchen`), no por sensor (`conteo_M018`): el R3.3 exige que la
+explicación sea legible por un cuidador, y `M018` no lo es. El mapeo sensor →
+zona vive en `config.yaml` y se derivó cruzando Aruba con el release
+consolidado de CASAS — 1.596.509 eventos coincidentes, 100 % de acuerdo.
+
+> **Partición temporal, no aleatoria.** Los últimos días van a prueba. Los
+> eventos están autocorrelacionados: repartirlos al azar deja ventanas
+> contiguas del mismo intervalo a ambos lados e infla la exactitud, y sobre
+> esa exactitud se calculan después explicabilidad y equidad.
 
 ## Uso
 

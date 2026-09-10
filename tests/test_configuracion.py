@@ -48,7 +48,7 @@ def test_rutas_se_resuelven_contra_la_raiz_del_repo(ruta_config):
 
     assert config.rutas.manifiesto.is_absolute()
     assert config.rutas.manifiesto == RAIZ / "artefactos" / "manifiesto.json"
-    assert config.datos.archivo_crudo == RAIZ / "datos" / "crudos" / "casas.csv"
+    assert config.datos.archivo_crudo == RAIZ / "datos" / "crudos" / "aruba.txt"
 
 
 def test_carga_no_depende_del_directorio_de_trabajo(ruta_config, tmp_path, monkeypatch):
@@ -199,14 +199,40 @@ def test_booleano_no_pasa_por_numero(tmp_path):
         cargar_configuracion(_escribir(tmp_path, crudo))
 
 
-def test_columnas_sensor_pir_puede_venir_vacia(ruta_config):
-    """Solo se puede completar tras inspeccionar CASAS; exigirla es prematuro.
-
-    Quien consuma los datos debe exigirla no vacía. El cargador, no.
-    """
+def test_los_sensores_pir_de_aruba_estan_declarados(ruta_config):
+    """Aruba tiene 31 sensores de movimiento, M001 a M031."""
     config = cargar_configuracion(ruta_config)
 
-    assert config.datos.columnas_sensor_pir == ()
+    assert len(config.datos.columnas_sensor_pir) == 31
+    assert config.datos.columnas_sensor_pir[0] == "M001"
+    assert config.datos.columnas_sensor_pir[-1] == "M031"
+
+
+def test_todo_sensor_pir_tiene_zona(config):
+    """Un PIR sin zona daría una característica anónima en el reporte (R3.3)."""
+    for sensor in config.datos.columnas_sensor_pir:
+        assert config.datos.zona_de(sensor) is not None, sensor
+
+
+def test_falla_si_un_sensor_pir_no_tiene_zona(tmp_path):
+    crudo = _config_valida()
+    del crudo["datos"]["zonas"]["M009"]
+
+    with pytest.raises(ConfiguracionInvalida, match="M009"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+def test_rechaza_una_estrategia_de_particion_desconocida(tmp_path):
+    crudo = _config_valida()
+    crudo["datos"]["particion"]["estrategia"] = "aleatoria_pura"
+
+    with pytest.raises(ConfiguracionInvalida, match="estrategia"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+def test_la_particion_declarada_es_temporal(config):
+    """La partición aleatoria filtraría eventos contiguos entre train y test."""
+    assert config.datos.particion.estrategia == "temporal_por_dia"
 
 
 # --- Coherencia de semillas --------------------------------------------------
