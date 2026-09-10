@@ -35,11 +35,12 @@ Si una precondición falla, es un **error de ejecución** (código 1), no un
 hallazgo de cumplimiento.
 
 ### Precondición A — Preparación de datos
-Carga determinista de `datos/crudos/casas.csv`, validación de esquema
-(columnas PIR, etiqueta, nulos, rango temporal), construcción de
-características incluyendo las columnas que definen los subgrupos de equidad
-(p. ej. `franja_horaria`), y partición train/test estratificada con
-`random_state = semilla`. Se sella el hash de los datos crudos y procesados.
+Lectura del crudo con el lector declarado en `datos.formato` (ver
+`docs/aplicar-a-otro-dataset.md`), validación de esquema (sensores declarados
+presentes, zonas asignadas, orden temporal), construcción de características
+por ventana —incluidas las columnas que definen los subgrupos de equidad, p.
+ej. `franja_horaria`— y partición temporal por día. Se sella el hash de los
+datos.
 
 ### Precondición B — Sellado del modelo
 Si el modelo viene dado, se carga y se sella. Si el caso de estudio exige
@@ -80,11 +81,13 @@ no se ajustaron a los resultados y **poder demostrarlo**.
 ### Paso 4 — Ejecución de las pruebas técnicas
 Aplicación de los tres módulos de principio sobre el modelo sellado.
 
-- **Explicabilidad** — `shap.TreeExplainer`. Atribución local por inferencia
-  (R3.1), agregación global sobre una muestra determinista
-  (`config.explicabilidad.muestras_globales`, R3.2) y traducción de las
-  atribuciones dominantes a enunciados comprensibles para destinatarios no
-  técnicos (R3.3).
+- **Explicabilidad** — `shap.TreeExplainer` con perturbación
+  `tree_path_dependent`. Atribución local de **toda** inferencia de prueba
+  (R3.1), guardada en un único artefacto consolidado que la bitácora
+  referencia como `archivo#id_evento`; importancia global como media de
+  |contribución| sobre todas esas explicaciones, sin un segundo cálculo SHAP
+  (R3.2); y traducción de las atribuciones dominantes a enunciados
+  comprensibles para destinatarios no técnicos (R3.3).
 - **Equidad** — desempeño desagregado por cada categoría de cada subgrupo
   (`config.equidad.subgrupos`, R4.1) y métricas con `fairlearn` contra los
   umbrales sellados en el paso 3 (R4.2). Aprueba solo si **todas** cumplen.

@@ -38,6 +38,7 @@ rutas:
   protocolo_evaluacion: artefactos/protocolo_evaluacion.md
   datasheet: artefactos/datasheet.md
   model_card: artefactos/model_card.md
+  reporte_explicabilidad: artefactos/reporte_explicabilidad.md
   reporte_cumplimiento: artefactos/reporte_cumplimiento.md
 
 # --- Dataset ----------------------------------------------------------------
@@ -156,11 +157,30 @@ modelo:
 # --- Principio 1: Explicabilidad ------------------------------------------
 explicabilidad:
   explainer: TreeExplainer
-  # Nº de filas usadas para la atribución global (importancia agregada).
-  muestras_globales: 1000
-  # Si true, se guarda una explicación local por cada inferencia y se
-  # referencia desde la bitácora.
+  # Cómo simula SHAP la ausencia de una característica. `tree_path_dependent`
+  # sigue la cobertura de los propios árboles: no pide datos de fondo, es
+  # determinista y sobre el modelo de referencia cuesta ~95 ms por inferencia
+  # (~18 min para toda la prueba de Aruba). `interventional` cuesta unas 8
+  # veces más con un fondo de 100 filas y obliga a justificar ese fondo; el
+  # cargador lo acepta pero todavía no está implementado. Ambos los define
+  # Lundberg et al. (2020), ya citado en el §5.8 del documento.
+  perturbacion: tree_path_dependent
+  # true => toda inferencia de prueba se explica y la bitácora la referencia
+  # (R3.1, Tabla 8). El documento exige explicar "toda predicción relevante"
+  # sin definir "relevante"; en el piloto se consideran relevantes TODAS las
+  # inferencias de prueba, porque el criterio de éxito es reconstruir el
+  # comportamiento completo del sistema.
   guardar_local_por_inferencia: true
+  # Puntos (muestra determinista con la semilla) que se dibujan en cada
+  # gráfico de dependencia. NO afecta la importancia global: esa agrega TODAS
+  # las explicaciones locales del conjunto de evaluación (Tabla 6, R3.2).
+  muestras_graficos: 1000
+  # Características que se destacan en los enunciados en lenguaje llano
+  # (R3.3) y que reciben gráfico de dependencia.
+  caracteristicas_destacadas: 3
+  # Ejemplos locales del reporte: N aciertos y N errores, selección
+  # determinista con la semilla.
+  ejemplos_por_tipo: 3
 
 # --- Principio 2: Equidad -------------------------------------------------
 equidad:

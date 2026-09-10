@@ -93,11 +93,19 @@ class ConfigModelo:
     hiperparametros: dict[str, Any]
 
 
+# Cómo simula SHAP la ausencia de una característica. Ambos métodos los define
+# Lundberg et al. (2020); ver `explicabilidad.perturbacion` en config.yaml.
+PERTURBACIONES = ("tree_path_dependent", "interventional")
+
+
 @dataclass(frozen=True)
 class ConfigExplicabilidad:
     explainer: str
-    muestras_globales: int
+    perturbacion: str
     guardar_local_por_inferencia: bool
+    muestras_graficos: int
+    caracteristicas_destacadas: int
+    ejemplos_por_tipo: int
 
 
 @dataclass(frozen=True)
@@ -132,6 +140,7 @@ class Rutas:
     protocolo_evaluacion: Path
     datasheet: Path
     model_card: Path
+    reporte_explicabilidad: Path
     reporte_cumplimiento: Path
 
 
@@ -256,6 +265,7 @@ def _leer_rutas(crudo: dict[str, Any], raiz: Path) -> Rutas:
         "protocolo_evaluacion",
         "datasheet",
         "model_card",
+        "reporte_explicabilidad",
         "reporte_cumplimiento",
     }
     _claves(bloque, campos, "rutas")
@@ -435,25 +445,44 @@ def _leer_explicabilidad(crudo: dict[str, Any]) -> ConfigExplicabilidad:
     bloque = _exigir_mapa(crudo, "explicabilidad")
     _claves(
         bloque,
-        {"explainer", "muestras_globales", "guardar_local_por_inferencia"},
+        {
+            "explainer",
+            "perturbacion",
+            "guardar_local_por_inferencia",
+            "muestras_graficos",
+            "caracteristicas_destacadas",
+            "ejemplos_por_tipo",
+        },
         "explicabilidad",
     )
-    muestras = _tipo(
-        bloque["muestras_globales"], int, "explicabilidad.muestras_globales"
+    perturbacion = _texto_no_vacio(
+        bloque["perturbacion"], "explicabilidad.perturbacion"
     )
-    if muestras <= 0:
+    if perturbacion not in PERTURBACIONES:
         raise ConfiguracionInvalida(
-            f"explicabilidad.muestras_globales: debe ser > 0, se recibió "
-            f"{muestras}"
+            f"explicabilidad.perturbacion: {perturbacion!r} no es un método "
+            f"conocido; use uno de {list(PERTURBACIONES)}"
         )
+
+    def _positivo(clave: str) -> int:
+        valor = _tipo(bloque[clave], int, f"explicabilidad.{clave}")
+        if valor <= 0:
+            raise ConfiguracionInvalida(
+                f"explicabilidad.{clave}: debe ser > 0, se recibió {valor}"
+            )
+        return valor
+
     return ConfigExplicabilidad(
         explainer=_texto_no_vacio(bloque["explainer"], "explicabilidad.explainer"),
-        muestras_globales=muestras,
+        perturbacion=perturbacion,
         guardar_local_por_inferencia=_tipo(
             bloque["guardar_local_por_inferencia"],
             bool,
             "explicabilidad.guardar_local_por_inferencia",
         ),
+        muestras_graficos=_positivo("muestras_graficos"),
+        caracteristicas_destacadas=_positivo("caracteristicas_destacadas"),
+        ejemplos_por_tipo=_positivo("ejemplos_por_tipo"),
     )
 
 
