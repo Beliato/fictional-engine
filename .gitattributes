@@ -1,0 +1,10 @@
+# Finales de linea: LF en el repositorio y en disco, en todas las plataformas.
+#
+# Sin esto, git en Windows (core.autocrlf=true) convierte a CRLF al hacer
+# checkout, y scripts/setup.sh deja de ejecutarse en Linux/WSL con
+# "bad interpreter: /usr/bin/env bash^M". Tambien evita que un editor en
+# Windows cuele CRLF en un commit y convierta un cambio de tres lineas en
+# una reescritura completa del archivo en el diff.
+* text=auto eol=lf
+*.sh text eol=lf
+Makefile text eol=lf
