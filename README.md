@@ -19,6 +19,8 @@ declaradas, ejecución determinista y sin estado oculto.
 > - `src/comun/utilidades.py` — hashing, tiempo UTC, E/S JSON determinista.
 > - `src/comun/datos.py` — carga de Aruba, características por zona y
 >   partición temporal.
+> - `src/comun/modelado.py` — construcción, entrenamiento determinista,
+>   sellado y persistencia del modelo.
 > - `src/trazabilidad/` — **Principio 3 completo**: esquema, escritor
 >   append-only y verificación de integridad y cobertura.
 
