@@ -257,3 +257,54 @@ ningún relleno completa y que el clasificador no acepta.
 
 Las lecturas ausentes en una ventana se arrastran de la anterior: que un
 sensor no reporte no significa temperatura desconocida, sino que no cambió.
+
+## D27 — Solo se admiten modelos de árbol
+`MODELOS_ADMITIDOS` lista cuatro clases de sklearn, todas de árbol, y
+`construir_estimador` rechaza cualquier otra.
+
+No es una restricción arbitraria: el módulo de explicabilidad usa
+`shap.TreeExplainer` (`config.explicabilidad.explainer`), que exige esa
+familia. Admitir un modelo lineal dejaría el pipeline entrenando sin
+problemas y reventaría —o peor, produciría atribuciones inválidas— recién en
+el paso 4. El acoplamiento es deliberado y el §5.8 ya lo declara: el modelo
+de referencia se elige por su compatibilidad con las técnicas de atribución.
+
+La lista vive en el código y no en `config.yaml` porque es un mapeo de nombre
+a clase de Python, no un parámetro.
+**Revisar:** si se adopta otro explainer, hay que revisar esta lista con él.
+
+## D28 — Se hashean los hiperparámetros efectivos, no el YAML
+`hash_parametros` se calcula sobre `estimador.get_params()`, no sobre el
+bloque `modelo.hiperparametros`. La diferencia importa: `get_params()`
+incluye los valores por defecto que nadie declaró y que igualmente
+condicionan el resultado. Un auditor necesita el estado real del estimador,
+no el subconjunto que alguien escribió.
+
+## D29 — Cargar un modelo de otra versión de scikit-learn es un error
+`cargar_modelo` compara la versión de sklearn registrada al serializar con la
+que corre, y lanza `ModeloIncompatible` si difieren. Un estimador
+deserializado bajo otra versión puede cambiar de comportamiento sin aviso, y
+entonces las predicciones dejarían de corresponder con las registradas en la
+bitácora: el expediente no reconstruiría nada.
+**Revisar:** es estricto a propósito. Si se necesita cargar modelos antiguos
+para comparación histórica, habría que añadir un modo explícito que lo
+permita dejando constancia.
+
+## D30 — Sin `predict_proba` no hay modelo válido
+`predecir_con_confianza` exige que el estimador exponga `predict_proba`, y la
+confianza que devuelve es la probabilidad **de la clase efectivamente
+predicha**, no el máximo de otra cosa. El esquema de la bitácora tiene un
+campo `confianza` obligatorio por inferencia (R5.1); un modelo que no puede
+producirlo no sirve como sujeto de prueba de este marco.
+
+## D31 — Desempeño observado del modelo de referencia
+Primera corrida completa sobre Aruba con partición temporal: exactitud 0,704,
+exactitud balanceada 0,652, F1 macro 0,432, confianza media 0,565.
+
+Son números modestos y **así debe ser**: la Tabla 10 declara que el modelo es
+sujeto de prueba, no objeto de optimización. Perseguir exactitud aquí sería
+salirse del alcance del trabajo. El F1 macro bajo refleja las clases raras y
+el desplazamiento temporal del D24 —sklearn avisa `y_pred contains classes
+not in y_true` porque el modelo predice `Housekeeping`, que no existe en
+prueba—. Todo eso va al model card como limitación declarada, no como algo a
+corregir.
