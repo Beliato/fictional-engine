@@ -174,3 +174,86 @@ para que la bitácora siga siendo verificable al moverla de máquina. Una ruta
 absoluta se respeta tal cual, pero ata la evidencia al equipo que la produjo.
 **Revisar:** si el expediente se va a distribuir, conviene prohibir las rutas
 absolutas también aquí, como ya hace el cargador de configuración.
+
+## D21 — Dataset del piloto: Aruba anotado
+Se evaluaron dos fuentes locales:
+
+- **Consolidado CASAS** (189 hogares, 14 GB): muchos hogares, pero **ningún
+  archivo tiene etiquetas de actividad** (se comprobaron los 189: todos con
+  exactamente 4 columnas).
+- **Aruba anotado** (1,7 M eventos, 2010-11-04 a 2011-06-11): una residente,
+  11 actividades anotadas por spans `begin`/`end`.
+
+La tarea declarada en la Tabla 10 es clasificación supervisada de actividades,
+así que sin etiquetas no hay modelo: **Aruba es la única opción viable**, por
+más hogares que tenga el consolidado.
+**Revisar:** conseguir Milan, Cairo y Tulum anotados cerraría la brecha de
+equidad (ver D23).
+
+## D22 — Características por zona, no por sensor — y cómo se derivó el mapeo
+Las características se nombran `conteo_Kitchen`, no `conteo_M018`. El R3.3
+exige que la información de transparencia sea comprensible para destinatarios
+no técnicos, y un identificador de sensor no lo es: SHAP atribuyendo peso a
+"M018" no le dice nada a un cuidador.
+
+El mapeo sensor -> zona **no se inventó**: se derivó cruzando por marca
+temporal el Aruba anotado con el release consolidado oficial de CASAS, que
+generaliza los sensores a nombres de habitación. Resultado: 1.596.509 eventos
+coincidentes, 35 sensores mapeados, **100 % de acuerdo y cero ambigüedad**.
+
+Ese cruce tiene un segundo valor, para el datasheet: **verifica la procedencia**
+de la copia anotada (que vino de un repo de terceros) contra el release
+oficial de CASAS, evento por evento.
+
+## D23 — Los subgrupos de equidad son contextuales, no poblacionales
+El R4.1 pide desagregar "entre subgrupos de la población monitoreada". Aruba
+tiene UNA residente: no existen subgrupos poblacionales. Se retiró
+`residente_id`, que habría colapsado a un único valor, y quedan dos subgrupos
+**contextuales**: `franja_horaria` y `tipo_dia`.
+
+Miden si el sistema funciona igual de bien en distintas condiciones, no si
+discrimina entre personas. **Satisfacen el R4.1 solo parcialmente y el reporte
+de equidad debe declararlo.**
+
+Dos advertencias que van al reporte:
+
+1. `franja_horaria` se deriva de la hora, y la hora es además variable de
+   entrada del modelo: parte de la disparidad entre franjas es por diseño.
+2. `tipo_dia` es relevante en este dominio y no una curiosidad: el README de
+   Aruba dice que hijos y nietos visitaban con regularidad, así que el fin de
+   semana concentra eventos que no son de la residente.
+
+**Revisar:** cerrar la brecha exige datos anotados de varios hogares.
+
+## D24 — Partición temporal por día, no aleatoria
+Se cambió `particion.estratificar` por `particion.estrategia:
+temporal_por_dia`. Los eventos de sensores están fuertemente
+autocorrelacionados: repartir filas al azar deja ventanas contiguas del mismo
+intervalo de actividad a ambos lados y produce exactitud optimista. Sobre esa
+exactitud se calculan después explicabilidad y equidad, así que la fuga
+contaminaría el expediente entero.
+
+**La decisión ya dio fruto.** Con el corte temporal, `Housekeeping` tiene 368
+ventanas en entrenamiento y **0 en prueba**: la actividad desaparece en los
+últimos 44 días. `Wash_Dishes` cae del ~20 % esperado al 4,8 %. Es un
+desplazamiento temporal real de la distribución que una partición aleatoria
+habría ocultado por completo, y que hay que documentar en el model card.
+
+## D25 — Ventanas disjuntas de 30 eventos
+Los eventos se agrupan en ventanas que **no se solapan**, para que ninguna
+fila comparta eventos con otra. La última ventana del crudo se descarta si
+quedó incompleta: tendría conteos sistemáticamente menores y sería una fila
+distinta a todas las demás.
+**Revisar:** 30 es un valor inicial. Conviene justificarlo con literatura o
+con un barrido documentado — pero el barrido, si se hace, va sobre
+entrenamiento, nunca mirando la partición de prueba.
+
+## D26 — Los sensores de temperatura no tienen zona
+Los `T00x` miden una condición ambiental, no localizan a la persona, así que
+no participan del conteo por zona: entran como característica propia
+(`temp_T001`...). En cambio se exige que **estén presentes** en el crudo: un
+sensor declarado que nunca reporta produciría una columna entera de nulos que
+ningún relleno completa y que el clasificador no acepta.
+
+Las lecturas ausentes en una ventana se arrastran de la anterior: que un
+sensor no reporte no significa temperatura desconocida, sino que no cambió.

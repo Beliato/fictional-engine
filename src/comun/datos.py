@@ -1,21 +1,48 @@
 """Carga, validación y partición determinista del dataset CASAS.
 
-El dataset CASAS son eventos de sensores de monitoreo domiciliario en formato
-tabular. Este módulo no descarga datos: espera el archivo crudo en la ruta
-declarada en `config.yaml` (`datos.archivo_crudo`) y documenta su procedencia
-en el datasheet.
+El dataset CASAS son eventos de sensores de monitoreo domiciliario. Este
+módulo no descarga datos: espera el archivo crudo en la ruta declarada en
+`config.yaml` (`datos.archivo_crudo`) y documenta su procedencia en el
+datasheet.
+
+Formato del crudo (Aruba), un evento por línea, campos separados por espacios:
+
+    2010-11-04 00:03:50.209589 M003 ON Sleeping begin
+    2010-11-04 00:03:57.399391 M003 OFF
+
+La anotación de actividad marca el inicio y el fin de un intervalo. Los
+eventos intermedios no llevan etiqueta: heredan la actividad abierta. Los
+eventos fuera de todo intervalo reciben `actividades.etiqueta_sin_actividad`.
+
+Representación de modelado
+--------------------------
+Los eventos se agrupan en ventanas disjuntas de `ventana.n_eventos` eventos
+consecutivos y cada ventana produce una fila tabular. Las características se
+nombran por **zona del hogar** (`conteo_Kitchen`), no por sensor
+(`conteo_M018`): el R3.3 exige que la información de transparencia sea
+comprensible para destinatarios no técnicos, y un identificador de sensor no
+lo es. El mapeo vive en `config.datos.zonas`.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import pandas as pd
+import pandas as pd
 
+from src.comun.utilidades import hash_sha256
+
+if TYPE_CHECKING:
     from src.comun.configuracion import Configuracion
+
+# Franjas horarias, por hora de inicio inclusive. Definen el subgrupo de
+# equidad `franja_horaria`.
+_FRANJAS = ((0, "madrugada"), (6, "mañana"), (12, "tarde"), (18, "noche"))
+
+_MARCAS_ANOTACION = ("begin", "end")
 
 
 @dataclass(frozen=True)
@@ -32,36 +59,148 @@ class ParticionSupervisada:
 
 
 def cargar_crudo(config: "Configuracion") -> "pd.DataFrame":
-    """Carga el CSV crudo de CASAS sin transformarlo.
+    """Carga el archivo crudo de CASAS y propaga la anotación de actividad.
+
+    No se usa `pandas.read_csv`: el crudo tiene un número variable de campos
+    por línea (4 sin anotación, 6 con ella) y separadores irregulares, así que
+    se parsea explícitamente. Parsear a mano también permite contar las líneas
+    descartadas en vez de que desaparezcan en silencio.
 
     Args:
         config: configuración del marco.
 
     Returns:
-        DataFrame con los eventos tal cual vienen del archivo.
+        DataFrame con columnas `marca_temporal`, `sensor`, `valor` y
+        `actividad`, ordenado en el tiempo.
 
     Raises:
         FileNotFoundError: si no existe `config.datos.archivo_crudo`.
-
-    TODO: leer con `pandas.read_csv`, dtypes explícitos, sin inferencia
-        silenciosa; registrar nº de filas y hash del archivo.
+        EsquemaDatosInvalido: si el archivo no contiene ningún evento
+            utilizable.
     """
-    raise NotImplementedError
+    ruta = Path(config.datos.archivo_crudo)
+    if not ruta.is_file():
+        raise FileNotFoundError(f"no existe el archivo crudo: {ruta}")
+
+    conocidos = (
+        set(config.datos.columnas_sensor_pir)
+        | set(config.datos.sensores_puerta)
+        | set(config.datos.sensores_temperatura)
+    )
+    etiqueta_vacia = config.datos.actividades.etiqueta_sin_actividad
+
+    marcas: list[str] = []
+    sensores: list[str] = []
+    valores: list[str] = []
+    actividades: list[str] = []
+    abierta = etiqueta_vacia
+    descartadas = 0
+
+    with ruta.open("r", encoding="utf-8", errors="replace") as f:
+        for linea in f:
+            campos = re.split(r"\s+", linea.strip())
+            if len(campos) < 4 or campos[2] not in conocidos:
+                # Aruba trae unas pocas líneas donde el nombre de la actividad
+                # se coló en la columna de sensor. Se descartan y se cuentan.
+                if linea.strip():
+                    descartadas += 1
+                continue
+            fecha, hora, sensor, valor = campos[:4]
+            marcas.append(f"{fecha} {hora}")
+            sensores.append(sensor)
+            valores.append(valor)
+
+            # La anotación abre y cierra intervalos. El evento que cierra
+            # pertenece todavía a la actividad que termina.
+            actividades.append(abierta)
+            if len(campos) >= 6 and campos[-1].lower() in _MARCAS_ANOTACION:
+                nombre = " ".join(campos[4:-1])
+                if campos[-1].lower() == "begin":
+                    abierta = nombre
+                    actividades[-1] = nombre
+                else:
+                    abierta = etiqueta_vacia
+
+    if not marcas:
+        raise EsquemaDatosInvalido(
+            f"{ruta}: no se encontró ningún evento con un sensor declarado en "
+            "config.datos; ¿es el archivo correcto?"
+        )
+
+    df = pd.DataFrame(
+        {
+            "marca_temporal": pd.to_datetime(marcas, format="mixed"),
+            "sensor": sensores,
+            "valor": valores,
+            "actividad": actividades,
+        }
+    )
+    df.attrs["lineas_descartadas"] = descartadas
+    return df.sort_values("marca_temporal", kind="stable").reset_index(drop=True)
 
 
 def validar_esquema(df: "pd.DataFrame", config: "Configuracion") -> None:
     """Valida que el DataFrame crudo tiene el esquema esperado.
 
-    Comprobaciones: presencia de `columna_objetivo` y de las
-    `columnas_sensor_pir`, ausencia de nulos en columnas críticas, tipos
-    coherentes, rango temporal plausible.
-
     Raises:
         EsquemaDatosInvalido: si alguna comprobación falla.
-
-    TODO: implementar las comprobaciones anteriores.
     """
-    raise NotImplementedError
+    faltantes = {"marca_temporal", "sensor", "valor", "actividad"} - set(df.columns)
+    if faltantes:
+        raise EsquemaDatosInvalido(f"faltan columnas: {sorted(faltantes)}")
+
+    for columna in ("marca_temporal", "sensor", "valor"):
+        if df[columna].isna().any():
+            raise EsquemaDatosInvalido(f"{columna}: contiene nulos")
+
+    if not df["marca_temporal"].is_monotonic_increasing:
+        raise EsquemaDatosInvalido(
+            "marca_temporal: los eventos no están ordenados en el tiempo; la "
+            "partición temporal y la ventana dependen de ese orden"
+        )
+
+    if not config.datos.columnas_sensor_pir:
+        raise EsquemaDatosInvalido(
+            "config.datos.columnas_sensor_pir está vacía: sin sensores PIR "
+            "declarados no se puede construir ninguna característica"
+        )
+
+    presentes = set(df["sensor"].unique())
+    pir_ausentes = set(config.datos.columnas_sensor_pir) - presentes
+    if pir_ausentes:
+        raise EsquemaDatosInvalido(
+            f"sensores PIR declarados pero ausentes del crudo: "
+            f"{sorted(pir_ausentes)}"
+        )
+
+    # Un sensor de temperatura declarado que nunca reporta produciría una
+    # columna entera de nulos, que ningún relleno puede completar y que el
+    # clasificador no acepta. Mejor detenerse acá que fallar al entrenar.
+    temp_ausentes = set(config.datos.sensores_temperatura) - presentes
+    if temp_ausentes:
+        raise EsquemaDatosInvalido(
+            f"sensores de temperatura declarados pero ausentes del crudo: "
+            f"{sorted(temp_ausentes)}"
+        )
+
+    # Los sensores de temperatura no tienen zona y no deben tenerla: no
+    # localizan a la persona, miden una condición ambiental. Sus lecturas
+    # entran como característica propia, no como conteo por zona.
+    ubicacion = presentes - set(config.datos.sensores_temperatura)
+    sin_zona = {s for s in ubicacion if s not in config.datos.zonas}
+    if sin_zona:
+        raise EsquemaDatosInvalido(
+            f"sensores presentes en el crudo sin zona asignada: {sorted(sin_zona)}"
+        )
+
+
+def franja_horaria(hora: int) -> str:
+    """Devuelve la franja horaria a la que pertenece `hora` (0-23)."""
+    etiqueta = _FRANJAS[0][1]
+    for inicio, nombre in _FRANJAS:
+        if hora >= inicio:
+            etiqueta = nombre
+    return etiqueta
 
 
 def construir_caracteristicas(
@@ -69,16 +208,111 @@ def construir_caracteristicas(
 ) -> "pd.DataFrame":
     """Deriva las características de modelado a partir de los eventos crudos.
 
-    Incluye la derivación de columnas usadas como subgrupos de equidad
-    (p. ej. `franja_horaria` a partir de la marca temporal).
+    Agrupa los eventos en ventanas disjuntas de `config.datos.ventana.n_eventos`
+    y produce una fila por ventana:
+
+        - `conteo_<zona>`: activaciones de sensores en esa zona.
+        - `temp_<sensor>`: última lectura de cada sensor de temperatura.
+        - `eventos_puerta`: aperturas y cierres de puerta.
+        - `hora_del_dia`, `dia_semana`, `duracion_segundos`.
+        - `franja_horaria` y `tipo_dia`: columnas sensibles para el análisis
+          desagregado; NO son características del modelo.
+        - `actividad`: la etiqueta de la ventana, tomada de su último evento.
+
+    Se descartan las ventanas cuya etiqueta esté en
+    `config.datos.actividades.excluidas`.
 
     Returns:
-        DataFrame de características listo para particionar. Se persiste en
-        `datos/intermedios/` para inspección.
-
-    TODO: definir el conjunto de características; documentarlo en el datasheet.
+        DataFrame de características listo para particionar.
     """
-    raise NotImplementedError
+    n = config.datos.ventana.n_eventos
+    zonas = config.datos.zonas
+    zonas_distintas = config.datos.zonas_distintas
+    temperatura = set(config.datos.sensores_temperatura)
+    puertas = set(config.datos.sensores_puerta)
+
+    trabajo = df.copy()
+    trabajo["zona"] = trabajo["sensor"].map(zonas)
+    trabajo["ventana"] = trabajo.index // n
+    # La última ventana se descarta si quedó incompleta: una ventana corta
+    # tendría conteos sistemáticamente menores y sería una fila distinta a
+    # todas las demás.
+    completas = trabajo.groupby("ventana")["sensor"].transform("size") == n
+    trabajo = trabajo[completas]
+
+    # Todo lo que sigue está vectorizado a propósito. Iterar 57 000 grupos con
+    # `groupby` tarda casi dos minutos, y el pipeline está hecho para
+    # re-ejecutarse y comparar corridas bit a bit: dos minutos por corrida
+    # desalientan justamente la práctica que el marco quiere fomentar.
+    grupos = trabajo.groupby("ventana", sort=True)
+    primero = grupos.first()
+    ultimo = grupos.last()
+    indice = ultimo.index
+
+    conteos = (
+        trabajo[~trabajo["sensor"].isin(temperatura | puertas)]
+        .pivot_table(
+            index="ventana", columns="zona", aggfunc="size", fill_value=0
+        )
+        .reindex(index=indice, columns=list(zonas_distintas), fill_value=0)
+        .astype(int)
+    )
+    conteos.columns = [f"conteo_{z}" for z in conteos.columns]
+
+    lecturas = trabajo[trabajo["sensor"].isin(temperatura)]
+    temperaturas = (
+        lecturas.assign(_v=pd.to_numeric(lecturas["valor"], errors="coerce"))
+        .pivot_table(index="ventana", columns="sensor", values="_v", aggfunc="last")
+        .reindex(index=indice, columns=list(config.datos.sensores_temperatura))
+    )
+    temperaturas.columns = [f"temp_{s}" for s in temperaturas.columns]
+
+    marca = ultimo["marca_temporal"]
+    caracteristicas = pd.concat([conteos, temperaturas], axis=1)
+    caracteristicas["eventos_puerta"] = (
+        trabajo[trabajo["sensor"].isin(puertas)]
+        .groupby("ventana")
+        .size()
+        .reindex(indice, fill_value=0)
+        .astype(int)
+    )
+    caracteristicas["hora_del_dia"] = marca.dt.hour.astype(int)
+    caracteristicas["dia_semana"] = marca.dt.dayofweek.astype(int)
+    caracteristicas["duracion_segundos"] = (
+        marca - primero["marca_temporal"]
+    ).dt.total_seconds()
+    caracteristicas["franja_horaria"] = [
+        franja_horaria(h) for h in caracteristicas["hora_del_dia"]
+    ]
+    caracteristicas["tipo_dia"] = caracteristicas["dia_semana"].map(
+        lambda d: "fin_de_semana" if d >= 5 else "laborable"
+    )
+    caracteristicas["fecha"] = marca.dt.date
+    caracteristicas[config.datos.columna_objetivo] = ultimo["actividad"]
+    caracteristicas = caracteristicas.reset_index(drop=True)
+
+    excluidas = set(config.datos.actividades.excluidas)
+    if excluidas:
+        caracteristicas = caracteristicas[
+            ~caracteristicas[config.datos.columna_objetivo].isin(excluidas)
+        ].reset_index(drop=True)
+
+    # Las lecturas de temperatura se arrastran de la ventana anterior: un
+    # sensor que no reportó no significa que la temperatura sea desconocida,
+    # sino que no cambió.
+    columnas_temp = [f"temp_{s}" for s in config.datos.sensores_temperatura]
+    caracteristicas[columnas_temp] = caracteristicas[columnas_temp].ffill().bfill()
+    return caracteristicas
+
+
+def columnas_caracteristicas(
+    caracteristicas: "pd.DataFrame", config: "Configuracion"
+) -> list[str]:
+    """Columnas que ve el modelo: ni la etiqueta ni las sensibles ni la fecha."""
+    excluidas = {config.datos.columna_objetivo, "fecha"} | {
+        s.columna for s in config.equidad.subgrupos
+    }
+    return [c for c in caracteristicas.columns if c not in excluidas]
 
 
 def particionar(
@@ -86,25 +320,68 @@ def particionar(
 ) -> ParticionSupervisada:
     """Realiza la partición train/test de forma determinista.
 
-    Usa `config.semilla`, `config.datos.particion.test_size` y
-    `estratificar`. Separa las columnas sensibles (las referenciadas por
-    `config.equidad.subgrupos`) para el análisis desagregado.
+    Con `estrategia: temporal_por_dia` los últimos días del período van a
+    prueba y los primeros a entrenamiento. Los eventos de sensores están
+    fuertemente autocorrelacionados: repartir filas al azar deja ventanas
+    contiguas del mismo intervalo de actividad a ambos lados de la partición
+    y produce una exactitud optimista. Sobre esa exactitud se calculan después
+    la explicabilidad y la equidad, así que la fuga contaminaría el expediente
+    de evidencia entero.
 
-    TODO: usar `sklearn.model_selection.train_test_split` con `random_state`
-        = `config.semilla`.
+    Un corte por día, además, es el que refleja el uso real del sistema:
+    predecir el comportamiento de mañana con lo aprendido hasta hoy.
+
+    Raises:
+        EsquemaDatosInvalido: si la partición dejaría vacío alguno de los dos
+            lados.
     """
-    raise NotImplementedError
+    if config.datos.particion.estrategia != "temporal_por_dia":
+        raise NotImplementedError(
+            f"estrategia {config.datos.particion.estrategia!r} todavía no "
+            "implementada; use 'temporal_por_dia'"
+        )
+
+    dias = sorted(df["fecha"].unique())
+    if len(dias) < 2:
+        raise EsquemaDatosInvalido(
+            f"se necesitan al menos 2 días distintos para partir por día, "
+            f"hay {len(dias)}"
+        )
+    n_prueba = max(1, round(len(dias) * config.datos.particion.test_size))
+    n_prueba = min(n_prueba, len(dias) - 1)
+    dias_prueba = set(dias[-n_prueba:])
+
+    es_prueba = df["fecha"].isin(dias_prueba)
+    columnas = columnas_caracteristicas(df, config)
+    sensibles = [s.columna for s in config.equidad.subgrupos]
+    objetivo = config.datos.columna_objetivo
+
+    entrenamiento, prueba = df[~es_prueba], df[es_prueba]
+    if entrenamiento.empty or prueba.empty:
+        raise EsquemaDatosInvalido(
+            "la partición dejó un lado vacío; revise test_size"
+        )
+
+    return ParticionSupervisada(
+        X_entrenamiento=entrenamiento[columnas].reset_index(drop=True),
+        X_prueba=prueba[columnas].reset_index(drop=True),
+        y_entrenamiento=entrenamiento[objetivo].reset_index(drop=True),
+        y_prueba=prueba[objetivo].reset_index(drop=True),
+        sensibles_entrenamiento=entrenamiento[sensibles].reset_index(drop=True),
+        sensibles_prueba=prueba[sensibles].reset_index(drop=True),
+    )
 
 
 def hash_dataframe(df: "pd.DataFrame") -> str:
     """Devuelve un hash estable (SHA-256) del contenido de un DataFrame.
 
     Se usa para sellar la versión de los datos en el manifiesto de evidencia.
-
-    TODO: serializar de forma canónica (orden de filas/columnas fijo) antes
-        de hashear.
+    Incluye los nombres de columna: dos tablas con los mismos valores bajo
+    nombres distintos no son el mismo dato.
     """
-    raise NotImplementedError
+    cabecera = "\x1f".join(map(str, df.columns)).encode("utf-8")
+    valores = pd.util.hash_pandas_object(df, index=False).values.tobytes()
+    return hash_sha256(cabecera + valores)
 
 
 class EsquemaDatosInvalido(ValueError):
