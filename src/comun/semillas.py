@@ -50,7 +50,7 @@ def instantanea_entorno() -> dict[str, str]:
 
     Returns:
         Diccionario con: versión de Python, plataforma, `PYTHONHASHSEED`,
-        versiones de numpy/pandas/scikit-learn/shap/fairlearn, hash del
+        versiones de numpy/pandas/scikit-learn/shap/matplotlib, hash del
         commit de git si está disponible. Se incrusta en el manifiesto de
         evidencia.
 

@@ -214,6 +214,31 @@ def test_soporte_minimo_invalido(tmp_path, valor):
         cargar_configuracion(_escribir(tmp_path, crudo))
 
 
+def test_los_umbrales_no_se_pueden_modificar_tras_la_carga(config):
+    """`frozen=True` no alcanza a los valores de un dict: el mapeo de umbrales
+    es de solo lectura para que nadie ajuste uno en tiempo de ejecución."""
+    with pytest.raises(TypeError):
+        config.equidad.umbrales["true_positive_rate_difference"] = 0.5  # type: ignore[index]
+
+
+def test_cada_subgrupo_declara_su_justificacion(config, tmp_path):
+    """La justificación va tal cual al reporte y al protocolo del paso 3."""
+    assert all(s.justificacion for s in config.equidad.subgrupos)
+    crudo = _config_valida()
+    crudo["equidad"]["subgrupos"][0]["justificacion"] = "  "
+
+    with pytest.raises(ConfiguracionInvalida, match="justificacion"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+def test_las_limitaciones_son_una_lista_de_textos(tmp_path):
+    crudo = _config_valida()
+    crudo["equidad"]["limitaciones"] = "una sola"
+
+    with pytest.raises(ConfiguracionInvalida, match="limitaciones"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
 def test_falla_sin_subgrupos(tmp_path):
     """Sin subgrupos no hay evaluación desagregada (R4.1)."""
     crudo = _config_valida()

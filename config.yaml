@@ -39,6 +39,7 @@ rutas:
   datasheet: artefactos/datasheet.md
   model_card: artefactos/model_card.md
   reporte_explicabilidad: artefactos/reporte_explicabilidad.md
+  reporte_equidad: artefactos/reporte_equidad.md
   reporte_cumplimiento: artefactos/reporte_cumplimiento.md
 
 # --- Dataset ----------------------------------------------------------------
@@ -185,31 +186,43 @@ explicabilidad:
 # --- Principio 2: Equidad -------------------------------------------------
 equidad:
   # Subgrupos de comparación. Cada entrada referencia una columna presente
-  # tras la preparación de datos.
-  #
-  # LIMITACIÓN DECLARADA. El R4.1 pide desagregar "entre subgrupos de la
-  # población monitoreada", pero Aruba tiene UNA residente: no existen
-  # subgrupos poblacionales, y por eso se retiró `residente_id`, que
-  # colapsaría a un único valor. Los dos subgrupos de abajo son CONTEXTUALES,
-  # no poblacionales: miden si el sistema funciona igual de bien en distintas
-  # condiciones, no si discrimina entre personas. Satisfacen el R4.1 solo de
-  # forma parcial, y el reporte de equidad debe decirlo. Cerrar esa brecha
-  # exige datos anotados de varios hogares (Milan, Cairo, Tulum).
-  #
-  # Advertencia adicional para el reporte: `franja_horaria` se deriva de la
-  # hora, y la hora es además una variable de entrada del modelo. Parte de la
-  # disparidad entre franjas es por diseño, no un sesgo emergente.
+  # tras la preparación de datos y dice por qué se compara: la justificación
+  # va tal cual al reporte de equidad y al protocolo del paso 3.
   subgrupos:
     - nombre: franja_horaria
       columna: franja_horaria
       categorias: [madrugada, mañana, tarde, noche]
-    # Los hijos y nietos de la residente la visitaban con regularidad, así que
-    # el fin de semana concentra eventos de sensor que no son suyos. Un
-    # sistema que degrada con visitas es un problema real de un servicio de
-    # monitoreo domiciliario, no una curiosidad estadística.
+      justificacion: >-
+        Las actividades de la residente cambian a lo largo del día. Comparar
+        por franja comprueba que el sistema no deje sin cobertura las
+        actividades propias de una parte del día.
     - nombre: tipo_dia
       columna: tipo_dia
       categorias: [laborable, fin_de_semana]
+      justificacion: >-
+        Los hijos y nietos de la residente la visitaban con regularidad, así
+        que el fin de semana concentra eventos de sensor que no son suyos. Un
+        sistema que degrada con visitas es un problema real de un servicio de
+        monitoreo domiciliario, no una curiosidad estadística.
+  # Limitaciones que el reporte de equidad declara tal cual. Son propias del
+  # dataset, no del marco: por eso viven aquí y no en el código.
+  limitaciones:
+    - >-
+      Aruba tiene una sola residente, así que no existen subgrupos
+      poblacionales: los dos subgrupos evaluados son contextuales. Miden si el
+      sistema funciona igual de bien en distintas condiciones, no si
+      discrimina entre personas, y satisfacen el R4.1 solo en parte. Cerrar
+      esa brecha exige datos anotados de varios hogares (Milan, Cairo, Tulum).
+    - >-
+      La franja horaria se deriva de la hora, que es además una variable de
+      entrada del modelo: parte de la disparidad entre franjas es por diseño,
+      no un sesgo emergente.
+    - >-
+      Las actividades con pocos casos en la prueba pueden quedar no
+      evaluables. Entre ellas está Bed_to_Toilet, los traslados nocturnos al
+      baño, clínicamente relevantes por el riesgo de caídas: este dataset no
+      permite comprobar si se reconocen igual de bien en cada categoría, solo
+      si sus falsas alarmas se reparten por igual.
   # --- Protocolo de medición (R4.2) ---------------------------------------
   # Todo lo que sigue se fija ANTES de calcular ninguna métrica (D8) y el
   # paso 3 lo sella por hash (D13). Justificación en D42-D44.

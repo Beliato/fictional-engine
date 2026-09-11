@@ -89,9 +89,12 @@ Aplicación de los tres módulos de principio sobre el modelo sellado.
   (R3.2); y traducción de las atribuciones dominantes a enunciados
   comprensibles para destinatarios no técnicos (R3.3).
 - **Equidad** — desempeño desagregado por cada categoría de cada subgrupo
-  (`config.equidad.subgrupos`, R4.1) y métricas con `fairlearn` contra los
-  umbrales sellados en el paso 3 (R4.2). Aprueba solo si **todas** cumplen.
-  Un veredicto negativo no detiene el pipeline: es evidencia.
+  (`config.equidad.subgrupos`, R4.1) y disparidad de cada actividad contra
+  el resto, medida con tasas propias contra los umbrales sellados en el
+  paso 3 (R4.2). Solo entran las tasas con `soporte_minimo` casos. Aprueba
+  si **todas** las combinaciones evaluables cumplen; sin ninguna evaluable,
+  el veredicto es "no evaluable", nunca "aprueba". Un veredicto negativo no
+  detiene el pipeline: es evidencia.
 - **Trazabilidad** — inferencia sobre el set de prueba registrando en
   `inferencias.jsonl`, por evento: `id_evento`, `marca_temporal` (UTC),
   `referencia_entrada` (hash de la fila), `salida_modelo` + `confianza`,

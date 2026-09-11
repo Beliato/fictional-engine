@@ -114,7 +114,7 @@ Detalle en [`docs/arquitectura.md`](docs/arquitectura.md).
 src/
 ├── comun/            configuración, lectores, datos, modelado, utilidades
 ├── explicabilidad/   Principio 1 — atribución SHAP local y global
-├── equidad/          Principio 2 — desempeño desagregado + métricas fairlearn
+├── equidad/          Principio 2 — desempeño desagregado + disparidad vs umbrales
 ├── trazabilidad/     Principio 3 — registro JSONL + verificación
 └── procedimiento/    orquestador de los 6 pasos + generación de evidencia
 ```

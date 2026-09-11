@@ -12,7 +12,8 @@ Garantías:
     - Aunque el veredicto de equidad del paso 4 no apruebe, el pipeline
       continúa: un veredicto negativo es evidencia válida, no un error.
     - Devuelve código de salida 0 si el pipeline completó, 2 si el veredicto
-      de equidad no aprueba, 1 si hubo un error de ejecución.
+      de equidad no aprueba o no es evaluable, 1 si hubo un error de
+      ejecución.
 """
 
 from __future__ import annotations

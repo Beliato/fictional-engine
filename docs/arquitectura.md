@@ -18,9 +18,10 @@ src/
 │   ├── atribucion_global.py   importancia agregada + figuras
 │   └── reporte.py             consolida el reporte de explicabilidad
 │
-├── equidad/          Principio 2 — desempeño desagregado + fairness
+├── equidad/          Principio 2 — desempeño desagregado + disparidad
+│   ├── entradas.py                validación común de etiquetas y subgrupos
 │   ├── desempeno_desagregado.py   métricas por subgrupo (sin veredicto)
-│   ├── metricas_equidad.py        métricas fairlearn vs umbrales -> veredicto
+│   ├── metricas_equidad.py        tasas uno contra resto vs umbrales -> veredicto
 │   └── reporte.py                 consolida el reporte de equidad
 │
 ├── trazabilidad/     Principio 3 — registro + verificación

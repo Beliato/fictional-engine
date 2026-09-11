@@ -131,6 +131,8 @@ equidad:
     - nombre: residente
       columna: residente_id
       categorias: []
+      justificacion: Comprobar que el sistema funciona igual para cada residente.
+  limitaciones: []
   soporte_minimo: 30
   umbrales:
     true_positive_rate_difference: 0.10
