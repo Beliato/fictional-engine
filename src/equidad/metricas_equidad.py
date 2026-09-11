@@ -53,18 +53,14 @@ def calcular_metricas_equidad(
     subgrupo: "Subgrupo",
     config: "Configuracion",
 ) -> list[ResultadoMetrica]:
-    """Calcula las métricas de equidad de `config.equidad.umbrales` para un
-    subgrupo y las contrasta con su umbral.
+    """Calcula para un subgrupo las métricas declaradas en `config.equidad` y
+    contrasta con su umbral las de `config.equidad.umbrales`.
 
-    Métricas esperadas (vía `fairlearn.metrics`):
-        - demographic_parity_difference
-        - equalized_odds_difference
-        - true_positive_rate_difference
-        - false_positive_rate_difference
-        - selection_rate_ratio (contra `selection_rate_ratio_min`)
+    Las métricas posibles son las del catálogo `METRICAS_EQUIDAD` de la
+    configuración. Cada actividad se evalúa contra el resto, respetando
+    `config.equidad.soporte_minimo` (D42, D43).
 
-    TODO: usar `fairlearn.metrics` con `sensitive_features=` la columna del
-        subgrupo; construir un `ResultadoMetrica` por métrica.
+    TODO: implementar según D42 y D43.
     """
     raise NotImplementedError
 

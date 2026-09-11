@@ -115,10 +115,31 @@ class Subgrupo:
     categorias: tuple[str, ...]
 
 
+# Métricas de equidad que el marco sabe calcular, con el sentido en que se
+# cumplen. El catálogo dice qué se PUEDE medir; `config.yaml` decide qué se
+# mide y qué decide el veredicto. Un nombre fuera del catálogo es un error: si
+# no, una métrica mal escrita no se calcularía y el veredicto aprobaría sin
+# haberla medido (D44).
+#   diferencia: cumple si valor <= umbral; el umbral va en [0, 1].
+#   cociente:   cumple si valor >= umbral; el umbral va en (0, 1].
+METRICAS_EQUIDAD = {
+    "true_positive_rate_difference": "diferencia",
+    "false_positive_rate_difference": "diferencia",
+    "equalized_odds_difference": "diferencia",
+    "demographic_parity_difference": "diferencia",
+    "selection_rate_ratio": "cociente",
+}
+
+
 @dataclass(frozen=True)
 class ConfigEquidad:
     subgrupos: tuple[Subgrupo, ...]
+    # Casos mínimos en el denominador de una tasa para compararla (D43).
+    soporte_minimo: int
+    # Métrica -> umbral. Solo estas deciden el veredicto (D42).
     umbrales: dict[str, float]
+    # Se calculan y se reportan, sin umbral ni peso en el veredicto.
+    descriptivas: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -486,9 +507,23 @@ def _leer_explicabilidad(crudo: dict[str, Any]) -> ConfigExplicabilidad:
     )
 
 
+def _sentido_metrica(nombre: Any, contexto: str) -> str:
+    """Sentido de cumplimiento de una métrica del catálogo (D44)."""
+    if nombre not in METRICAS_EQUIDAD:
+        raise ConfiguracionInvalida(
+            f"{contexto}: {nombre!r} no es una métrica de equidad conocida; use "
+            f"una de {sorted(METRICAS_EQUIDAD)}"
+        )
+    return METRICAS_EQUIDAD[nombre]
+
+
 def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
     bloque = _exigir_mapa(crudo, "equidad")
-    _claves(bloque, {"subgrupos", "umbrales"}, "equidad")
+    _claves(
+        bloque,
+        {"subgrupos", "soporte_minimo", "umbrales", "descriptivas"},
+        "equidad",
+    )
 
     crudos_subgrupos = _tipo(bloque["subgrupos"], list, "equidad.subgrupos")
     if not crudos_subgrupos:
@@ -520,6 +555,12 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
             )
         )
 
+    soporte_minimo = _tipo(bloque["soporte_minimo"], int, "equidad.soporte_minimo")
+    if soporte_minimo <= 0:
+        raise ConfiguracionInvalida(
+            f"equidad.soporte_minimo: debe ser > 0, se recibió {soporte_minimo}"
+        )
+
     umbrales_crudos = _exigir_mapa(bloque["umbrales"], "equidad.umbrales")
     if not umbrales_crudos:
         raise ConfiguracionInvalida(
@@ -529,11 +570,9 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
     umbrales: dict[str, float] = {}
     for nombre, valor in umbrales_crudos.items():
         contexto = f"equidad.umbrales.{nombre}"
+        sentido = _sentido_metrica(nombre, contexto)
         umbral = _tipo(valor, float, contexto)
-        # La convención de nombres fija el rango válido, en vez de una lista de
-        # métricas incrustada en el código: `_min` es un cociente, el resto son
-        # diferencias absolutas.
-        if nombre.endswith("_min"):
+        if sentido == "cociente":
             if not 0.0 < umbral <= 1.0:
                 raise ConfiguracionInvalida(
                     f"{contexto}: un cociente mínimo debe estar en (0, 1], se "
@@ -546,7 +585,28 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
             )
         umbrales[nombre] = umbral
 
-    return ConfigEquidad(subgrupos=tuple(subgrupos), umbrales=umbrales)
+    descriptivas = _lista_de_textos(bloque["descriptivas"], "equidad.descriptivas")
+    for i, nombre in enumerate(descriptivas):
+        contexto = f"equidad.descriptivas[{i}]"
+        _sentido_metrica(nombre, contexto)
+        if nombre in umbrales:
+            raise ConfiguracionInvalida(
+                f"{contexto}: {nombre!r} ya tiene umbral en equidad.umbrales; "
+                "una métrica decide el veredicto o se reporta como descriptiva, "
+                "no ambas"
+            )
+    repetidas = sorted({n for n in descriptivas if descriptivas.count(n) > 1})
+    if repetidas:
+        raise ConfiguracionInvalida(
+            f"equidad.descriptivas: {repetidas} aparece(n) repetida(s)"
+        )
+
+    return ConfigEquidad(
+        subgrupos=tuple(subgrupos),
+        soporte_minimo=soporte_minimo,
+        umbrales=umbrales,
+        descriptivas=descriptivas,
+    )
 
 
 def _leer_trazabilidad(crudo: dict[str, Any]) -> ConfigTrazabilidad:

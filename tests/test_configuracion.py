@@ -133,32 +133,84 @@ def test_test_size_fuera_de_rango(tmp_path, valor):
         cargar_configuracion(_escribir(tmp_path, crudo))
 
 
-def test_umbrales_equidad_presentes_y_no_negativos(config):
-    """Todos los umbrales esperados existen y son >= 0."""
-    assert config.equidad.umbrales
-    for nombre, valor in config.equidad.umbrales.items():
-        assert valor >= 0, nombre
-        if nombre.endswith("_min"):
-            assert 0 < valor <= 1, nombre
-        else:
-            assert valor <= 1, nombre
+def test_protocolo_de_equidad_del_piloto(config):
+    """El protocolo declarado para el piloto (D42, D43). Cambiarlo obliga a
+    tocar también esta prueba, y eso deja un segundo rastro en git."""
+    assert set(config.equidad.umbrales) == {
+        "true_positive_rate_difference",
+        "false_positive_rate_difference",
+    }
+    assert set(config.equidad.descriptivas) == {
+        "demographic_parity_difference",
+        "selection_rate_ratio",
+    }
+    assert config.equidad.soporte_minimo == 30
 
 
 @pytest.mark.parametrize(
     ("clave", "valor"),
     [
-        ("demographic_parity_difference", -0.01),
-        ("demographic_parity_difference", 1.5),
-        ("selection_rate_ratio_min", 0.0),
-        ("selection_rate_ratio_min", 1.2),
+        ("true_positive_rate_difference", -0.01),
+        ("true_positive_rate_difference", 1.5),
+        ("selection_rate_ratio", 0.0),
+        ("selection_rate_ratio", 1.2),
     ],
 )
 def test_umbral_fuera_de_rango(tmp_path, clave, valor):
-    """Las diferencias van en [0, 1]; los cocientes `_min`, en (0, 1]."""
+    """Las diferencias van en [0, 1]; los cocientes, en (0, 1]."""
     crudo = _config_valida()
     crudo["equidad"]["umbrales"][clave] = valor
+    # Una métrica con umbral no puede figurar a la vez como descriptiva.
+    crudo["equidad"]["descriptivas"] = []
 
     with pytest.raises(ConfiguracionInvalida, match=clave):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+def test_rechaza_un_umbral_de_metrica_desconocida(tmp_path):
+    """Una métrica mal escrita no se calcularía, y el veredicto aprobaría sin
+    haberla medido (D14, D44)."""
+    crudo = _config_valida()
+    crudo["equidad"]["umbrales"]["demographic_parity_diference"] = 0.10
+
+    with pytest.raises(ConfiguracionInvalida, match="demographic_parity_diference"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+def test_rechaza_una_metrica_descriptiva_desconocida(tmp_path):
+    crudo = _config_valida()
+    crudo["equidad"]["descriptivas"].append("paridad")
+
+    with pytest.raises(ConfiguracionInvalida, match="paridad"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+def test_una_metrica_decide_o_describe_pero_no_ambas(tmp_path):
+    """Si hiciera las dos cosas, el reporte se contradiría sobre su papel en
+    el veredicto."""
+    crudo = _config_valida()
+    crudo["equidad"]["descriptivas"].append("true_positive_rate_difference")
+
+    with pytest.raises(ConfiguracionInvalida, match="no ambas"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+def test_rechaza_metricas_descriptivas_repetidas(tmp_path):
+    crudo = _config_valida()
+    crudo["equidad"]["descriptivas"].append("demographic_parity_difference")
+
+    with pytest.raises(ConfiguracionInvalida, match="repetida"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+@pytest.mark.parametrize("valor", [0, -5, 2.5, True])
+def test_soporte_minimo_invalido(tmp_path, valor):
+    """Un entero positivo: sin mínimo, una tasa sobre 2 casos pesaría lo
+    mismo que una sobre 2.000 (D43)."""
+    crudo = _config_valida()
+    crudo["equidad"]["soporte_minimo"] = valor
+
+    with pytest.raises(ConfiguracionInvalida, match="soporte_minimo"):
         cargar_configuracion(_escribir(tmp_path, crudo))
 
 
