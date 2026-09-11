@@ -131,14 +131,24 @@ equidad:
     - nombre: residente
       columna: residente_id
       categorias: []
+  soporte_minimo: 30
   umbrales:
+    true_positive_rate_difference: 0.10
     demographic_parity_difference: 0.10
+  descriptivas: [selection_rate_ratio]
 ```
 
 Aquí está la exigencia más fuerte del marco: **los umbrales se declaran antes
 de ejecutar las pruebas**, y el paso 3 sella el hash de `config.yaml` para que
 un auditor externo pueda comprobar que no se ajustaron después de ver los
 resultados.
+
+Qué métricas deciden el veredicto y cuáles solo se reportan también es una
+decisión del despliegue. En el piloto la paridad demográfica es descriptiva,
+porque las actividades ocurren con frecuencias distintas en cada franja
+horaria y la paridad fallaría sin que hubiera sesgo (D42). Con subgrupos
+poblacionales y frecuencias comparables, como en el ejemplo de arriba, puede
+decidir.
 
 ## Lo que el marco no puede resolver por nadie
 

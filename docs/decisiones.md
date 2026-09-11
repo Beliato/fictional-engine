@@ -68,6 +68,9 @@ Valores iniciales: 0.10 para las diferencias, 0.80 para el ratio (regla del
 80 %). **Deben** fijarse con criterio antes de correr nada y NO tocarse
 después. Cambiarlos deja rastro en git.
 **Revisar:** justificación de cada valor con literatura / marco legal.
+**Actualización:** antes de calcular ninguna métrica, D42 sacó del veredicto
+la paridad demográfica y la regla del 80 %, y D43 agregó el soporte mínimo.
+Los umbrales que quedan siguen en 0.10.
 
 ## D9 — El fallo de equidad no aborta el pipeline
 Código de salida 2 (no aprueba) ≠ 1 (error). Un veredicto negativo es un
@@ -124,7 +127,7 @@ la bitácora.
 tocar el cargador. Es deliberado (la config no debe crecer sin que el código
 la contemple), pero conviene tenerlo presente.
 
-## D15 — Los rangos de umbral se derivan del nombre, no de una lista
+## D15 — Los rangos de umbral se derivan del nombre, no de una lista — REEMPLAZADA por D44
 El cargador valida que los umbrales terminados en `_min` estén en (0, 1] —son
 cocientes, como la regla del 80 %— y que el resto estén en [0, 1] —son
 diferencias absolutas—.
@@ -458,3 +461,82 @@ dejaría `{{tabla}}` literal en un artefacto que va a un auditor; lo segundo
 delata que se está rellenando la plantilla equivocada. Es el mismo criterio
 del cargador de configuración (D14), y lo van a usar todos los artefactos
 del paso 5.
+
+## D42 — Deciden la igualdad de oportunidades y los falsos positivos; la paridad se reporta
+La Tabla 5 de la tesis nombra para el R4.2 la "paridad demográfica" y la
+"igualdad de oportunidades". Con los subgrupos del piloto, la primera no mide
+sesgo. Exige que cada actividad se prediga con la misma frecuencia en todas
+las categorías, y las frecuencias reales difieren. En las etiquetas de prueba
+—composición de los datos, no resultados del modelo—, `Sleeping` es el
+23,1 % de las ventanas de madrugada y el 0,2 % de las de tarde. Un modelo
+perfecto tendría una diferencia de paridad de 0,23 y reprobaría el umbral de
+0,10 sin tener ningún sesgo. La regla del 80 % tiene el mismo problema,
+agravado: viene de la selección de personal, donde existe un resultado
+"favorable", y aquí no lo hay.
+
+Deciden el veredicto las dos métricas que condicionan en la actividad real:
+la diferencia de tasas de verdaderos positivos (igualdad de oportunidades) y
+la de falsos positivos. Juntas equivalen a probabilidades igualadas (Hardt et
+al., 2016). La paridad y la regla del 80 % se calculan y se reportan como
+**descriptivas**, con esta justificación. No se descartan porque la tesis las
+nombra.
+
+La elección es del despliegue, no del marco. Con subgrupos poblacionales y
+frecuencias comparables, la paridad puede volver al veredicto moviéndola de
+`descriptivas` a `umbrales`. La nota de la Tabla 7 de la tesis lo respalda:
+la calibración definitiva de los umbrales "se establece durante la
+implementación del módulo".
+**Revisar:** que el texto del R4.2 en la tesis refleje la distinción entre las
+métricas que deciden y las que describen.
+
+## D43 — Multiclase: cada actividad contra el resto, con soporte mínimo
+Las métricas de equidad están definidas para una salida binaria. Con 11
+actividades, cada una se evalúa contra el resto, y su disparidad en un
+subgrupo es la diferencia entre la tasa máxima y la mínima de sus
+categorías.
+
+Una tasa se calcula solo si su denominador en la categoría llega a
+`equidad.soporte_minimo` casos (30 en el piloto). Para la tasa de verdaderos
+positivos, el denominador son las ventanas de la actividad real; para la de
+falsos positivos, las del resto. Las categorías por debajo quedan fuera de la
+comparación y el reporte las nombra. Si quedan menos de dos, la combinación
+es **no evaluable**: ni se descarta en silencio ni cuenta como aprobada.
+
+El veredicto tiene tres estados:
+- **Aprueba:** toda combinación evaluable respeta su umbral.
+- **No aprueba:** alguna combinación evaluable lo excede.
+- **No evaluable:** ninguna combinación llegó al soporte mínimo.
+
+El reporte declara siempre la cobertura: cuántas combinaciones se evaluaron,
+de cuántas posibles.
+
+Por qué se fija ahora: `fairlearn` 0.10.0 devuelve 0,0 en silencio para la
+paridad demográfica con etiquetas multiclase, porque toma `pos_label=1`, que
+no existe. Eso es un "aprueba" falso. Con probabilidades igualadas, en cambio,
+lanza un error.
+
+Consecuencia que el reporte debe decir: `Bed_to_Toilet` tiene 8 casos en
+prueba, todos de madrugada, y no es evaluable. Los viajes nocturnos al baño,
+clínicamente relevantes por el riesgo de caídas, no se pueden auditar por
+equidad con este dataset.
+**Revisar:** con 30 casos, el error estándar de una tasa cercana a 0,8 es
+≈0,07, y el de la diferencia entre dos categorías ≈0,10: del mismo orden que
+el umbral. Con poco soporte, un resultado cercano al umbral no se distingue
+del ruido. El reporte muestra el n de cada celda para que se lea así. Una
+mejora posible es acompañar cada diferencia con un intervalo de confianza.
+
+## D44 — Catálogo cerrado de métricas de equidad (reemplaza D15)
+El cargador valida los nombres de métrica contra `METRICAS_EQUIDAD`. El
+catálogo asocia a cada métrica su sentido de cumplimiento: una diferencia
+cumple si no supera el umbral; un cociente, si no baja de él.
+
+D15 evitó esa lista para no crear una segunda fuente de verdad sobre qué se
+evalúa. Pero el catálogo no dice qué se evalúa, cosa que sigue en
+`config.yaml`. Dice qué sabe calcular el marco, igual que `PERTURBACIONES` o
+`MODELOS_ADMITIDOS`. Y la convención de nombres dejaba abierto el hueco que
+D14 quería cerrar: `demographic_parity_diference` pasaba la validación de
+rango, nadie la calculaba, y el veredicto aprobaba sin haberla medido.
+
+Con el catálogo, `selection_rate_ratio_min` pasa a llamarse
+`selection_rate_ratio`: el sentido lo da el catálogo, no el sufijo. Además,
+una métrica no puede estar a la vez en `umbrales` y en `descriptivas`.

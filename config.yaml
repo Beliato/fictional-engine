@@ -2,10 +2,10 @@
 # Configuración central del marco operativo de cumplimiento regulatorio.
 #
 # REGLA DE ORO (reproducibilidad y no p-hacking):
-#   Los umbrales de las métricas de equidad (bloque `equidad.umbrales`) se
-#   declaran AQUÍ, ANTES de ejecutar el pipeline. NUNCA se ajustan después de
-#   observar los resultados. Todo cambio de umbral debe quedar en el historial
-#   de git con su justificación.
+#   El protocolo de equidad (bloque `equidad`: métricas, umbrales y soporte
+#   mínimo) se declara AQUÍ, ANTES de ejecutar el pipeline. NUNCA se ajusta
+#   después de observar los resultados. Todo cambio debe quedar en el
+#   historial de git con su justificación.
 #
 # Este archivo es la ÚNICA fuente de verdad para parámetros. El código no debe
 # contener constantes ocultas ni valores por defecto que sustituyan a los de
@@ -210,13 +210,36 @@ equidad:
     - nombre: tipo_dia
       columna: tipo_dia
       categorias: [laborable, fin_de_semana]
-  # Umbrales PRE-DECLARADOS. Si una métrica excede su umbral => veredicto FALLA.
+  # --- Protocolo de medición (R4.2) ---------------------------------------
+  # Todo lo que sigue se fija ANTES de calcular ninguna métrica (D8) y el
+  # paso 3 lo sella por hash (D13). Justificación en D42-D44.
+  #
+  # Multiclase: cada actividad se evalúa contra el resto. Una tasa se calcula
+  # solo si su denominador en la categoría llega a `soporte_minimo` casos:
+  # las ventanas de la actividad real para la tasa de verdaderos positivos,
+  # las del resto para la de falsos positivos. Las categorías por debajo
+  # quedan fuera de la comparación y el reporte las nombra. Si quedan menos
+  # de dos, la combinación es "no evaluable": ni se descarta en silencio ni
+  # cuenta como aprobada.
+  soporte_minimo: 30
+  # Métricas que DECIDEN el veredicto, con su umbral. Ambas condicionan en la
+  # actividad real, así que no castigan que la residente duerma de madrugada
+  # y no a la tarde; juntas equivalen a probabilidades igualadas (equalized
+  # odds). Aprueba si y solo si toda combinación evaluable (subgrupo x
+  # actividad x métrica) respeta su umbral; sin ninguna evaluable, el
+  # veredicto es "no evaluable", nunca "aprueba".
   umbrales:
-    demographic_parity_difference: 0.10
-    equalized_odds_difference: 0.10
-    true_positive_rate_difference: 0.10
+    true_positive_rate_difference: 0.10   # igualdad de oportunidades
     false_positive_rate_difference: 0.10
-    selection_rate_ratio_min: 0.80        # "regla del 80 %"
+  # Métricas que se calculan y REPORTAN, pero no deciden. La paridad
+  # demográfica exige que cada actividad se prediga con la misma frecuencia
+  # en todas las categorías, y con franjas horarias falla por construcción:
+  # en las etiquetas reales de prueba, Sleeping es el 23,1 % de las ventanas
+  # de madrugada y el 0,2 % de las de tarde, así que un modelo perfecto
+  # tendría una diferencia de 0,23. Se conservan porque la tesis las nombra.
+  descriptivas:
+    - demographic_parity_difference
+    - selection_rate_ratio              # "regla del 80 %"
 
 # --- Principio 3: Trazabilidad ------------------------------------------
 trazabilidad:
