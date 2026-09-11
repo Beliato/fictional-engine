@@ -19,7 +19,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from types import MappingProxyType
+from typing import Any, Mapping
 
 import yaml
 
@@ -113,6 +114,8 @@ class Subgrupo:
     nombre: str
     columna: str
     categorias: tuple[str, ...]
+    # Por qué se compara: va tal cual al reporte y al protocolo del paso 3.
+    justificacion: str
 
 
 # Métricas de equidad que el marco sabe calcular, con el sentido en que se
@@ -136,10 +139,13 @@ class ConfigEquidad:
     subgrupos: tuple[Subgrupo, ...]
     # Casos mínimos en el denominador de una tasa para compararla (D43).
     soporte_minimo: int
-    # Métrica -> umbral. Solo estas deciden el veredicto (D42).
-    umbrales: dict[str, float]
+    # Métrica -> umbral. Solo estas deciden el veredicto (D42). Es de solo
+    # lectura: ver `_leer_equidad`.
+    umbrales: Mapping[str, float]
     # Se calculan y se reportan, sin umbral ni peso en el veredicto.
     descriptivas: tuple[str, ...]
+    # Limitaciones propias del dataset que el reporte declara tal cual.
+    limitaciones: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -162,6 +168,7 @@ class Rutas:
     datasheet: Path
     model_card: Path
     reporte_explicabilidad: Path
+    reporte_equidad: Path
     reporte_cumplimiento: Path
 
 
@@ -287,6 +294,7 @@ def _leer_rutas(crudo: dict[str, Any], raiz: Path) -> Rutas:
         "datasheet",
         "model_card",
         "reporte_explicabilidad",
+        "reporte_equidad",
         "reporte_cumplimiento",
     }
     _claves(bloque, campos, "rutas")
@@ -521,7 +529,13 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
     bloque = _exigir_mapa(crudo, "equidad")
     _claves(
         bloque,
-        {"subgrupos", "soporte_minimo", "umbrales", "descriptivas"},
+        {
+            "subgrupos",
+            "soporte_minimo",
+            "umbrales",
+            "descriptivas",
+            "limitaciones",
+        },
         "equidad",
     )
 
@@ -536,7 +550,9 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
     for i, s in enumerate(crudos_subgrupos):
         contexto = f"equidad.subgrupos[{i}]"
         mapa = _exigir_mapa(s, contexto)
-        _claves(mapa, {"nombre", "columna", "categorias"}, contexto)
+        _claves(
+            mapa, {"nombre", "columna", "categorias", "justificacion"}, contexto
+        )
         nombre = _texto_no_vacio(mapa["nombre"], f"{contexto}.nombre")
         if nombre in vistos:
             raise ConfiguracionInvalida(
@@ -551,6 +567,9 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
                 # Lista vacía => las categorías se infieren de los datos.
                 categorias=_lista_de_textos(
                     mapa["categorias"], f"{contexto}.categorias"
+                ),
+                justificacion=_texto_no_vacio(
+                    mapa["justificacion"], f"{contexto}.justificacion"
                 ),
             )
         )
@@ -604,8 +623,13 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
     return ConfigEquidad(
         subgrupos=tuple(subgrupos),
         soporte_minimo=soporte_minimo,
-        umbrales=umbrales,
+        # De solo lectura: `frozen=True` no alcanza a los valores de un dict,
+        # y un umbral no debe poder tocarse después de cargado (D45).
+        umbrales=MappingProxyType(umbrales),
         descriptivas=descriptivas,
+        limitaciones=_lista_de_textos(
+            bloque["limitaciones"], "equidad.limitaciones"
+        ),
     )
 
 

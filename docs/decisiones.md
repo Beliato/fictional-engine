@@ -37,7 +37,8 @@ principio" + procedimiento + comun.
 
 ## D4 — Versiones fijadas
 Python 3.11. Conjunto NumPy 1.26.4 / pandas 2.2.2 / scikit-learn 1.4.2 /
-shap 0.45.1 / fairlearn 0.10.0 / matplotlib 3.8.4 / pyyaml 6.0.1 / pytest 8.2.0.
+shap 0.45.1 / matplotlib 3.8.4 / pyyaml 6.0.1 / pytest 8.2.0 (`fairlearn`
+0.10.0 figuraba al principio y se retiró en D45).
 Elegido por compatibilidad mutua conocida (NumPy < 2 evita fricción con shap).
 **Revisar y confirmar** ejecutando `make setup && make lock`: `requirements.lock`
 con el cierre transitivo es lo que hace el entorno realmente reproducible.
@@ -74,7 +75,8 @@ Los umbrales que quedan siguen en 0.10.
 
 ## D9 — El fallo de equidad no aborta el pipeline
 Código de salida 2 (no aprueba) ≠ 1 (error). Un veredicto negativo es un
-resultado auditable, no una excepción.
+resultado auditable, no una excepción. Un veredicto no evaluable (D43)
+también sale con 2: no es un aprobado.
 
 ## D10 — `filterwarnings = error` en pytest
 Las pruebas fallan ante cualquier warning. Es estricto a propósito
@@ -540,3 +542,39 @@ rango, nadie la calculaba, y el veredicto aprobaba sin haberla medido.
 Con el catálogo, `selection_rate_ratio_min` pasa a llamarse
 `selection_rate_ratio`: el sentido lo da el catálogo, no el sufijo. Además,
 una métrica no puede estar a la vez en `umbrales` y en `descriptivas`.
+
+## D45 — Implementación de equidad: tasas propias, contraste exacto, sin `fairlearn`
+Las tasas se calculan con conteos explícitos, y cada una conserva su
+numerador y su denominador para que un auditor pueda rehacer la cuenta.
+`fairlearn` se retiró de las dependencias: no quedaba usada, y con etiquetas
+multiclase era la trampa de D43.
+
+Decisiones de detalle:
+- **Contraste exacto.** La disparidad se compara con el umbral en
+  fracciones, no en coma flotante: 0,8 − 0,7 da 0,10000000000000009 y
+  reprobaría un umbral de 0,10 que la diferencia real iguala. Una diferencia
+  igual al umbral lo cumple.
+- **Qué actividades se evalúan.** Las que aparecen en las etiquetas reales o
+  en las predicciones. Una actividad que el modelo predice pero que nunca
+  ocurre en la prueba (`Housekeeping`, en el piloto) no tiene tasa de
+  verdaderos positivos, pero sí de falsos positivos: sus falsas alarmas
+  también pueden repartirse de forma desigual.
+- **Probabilidades igualadas** es la mayor de las dos diferencias y solo es
+  evaluable si ambas lo son. El **cociente de selección** no es evaluable si
+  ninguna categoría comparable tiene predicciones de la actividad (0/0).
+- **Desempeño desagregado (R4.1).** Precisión, exhaustividad y F1 se
+  promedian en macro sobre las actividades presentes en las etiquetas reales
+  de cada categoría; una actividad que ocurre y nunca se predice aporta
+  cero.
+- **Categorías.** Una categoría que aparece en los datos sin estar declarada
+  es un error, no una fila menos. Una declarada sin ventanas aparece con
+  n = 0 y sin métricas.
+- **Justificaciones y limitaciones como datos.** Pasaron de comentarios del
+  YAML a `subgrupos[].justificacion` y `equidad.limitaciones`: el reporte
+  las cita tal cual y el código no sabe nada del dataset.
+- **Umbrales de solo lectura.** `equidad.umbrales` se carga como un mapeo
+  inmutable: `frozen=True` no alcanzaba a los valores de un diccionario.
+- **Código de salida.** Un veredicto no evaluable sale con 2, como uno que
+  no aprueba (D9).
+**Revisar:** la justificación de `franja_horaria` es un borrador; conviene
+reescribirla con el criterio del dominio.
