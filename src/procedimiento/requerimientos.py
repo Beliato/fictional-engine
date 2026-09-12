@@ -100,6 +100,75 @@ REQUERIMIENTOS = (
 )
 
 
+#: Principios rectores de la ENIA (MICITT, 2024, pp. 30-34), en su orden y con
+#: su nombre, y si este marco los operacionaliza. La lista completa importa:
+#: un reporte que solo muestre los tres cubiertos se lee como si fueran todos.
+PRINCIPIOS_ENIA = (
+    ("1", "Paz y dignidad humana", False),
+    ("2", "Supervisión humana", False),
+    ("3", "Transparencia y explicabilidad", True),
+    ("4", "Equidad y no discriminación", True),
+    ("5", "Responsabilidad", True),
+    ("6", "Sostenibilidad y bienestar", False),
+    ("7", "Seguridad, ciberseguridad y protección de la información", False),
+)
+
+#: Qué queda fuera dentro de los tres principios que el marco sí cubre. Se
+#: declara en el reporte de cumplimiento para que no se lea como cobertura
+#: total de cada principio (D53).
+ALCANCE_PARCIAL = (
+    (
+        "Transparencia y explicabilidad",
+        "El marco produce la explicación de cada decisión automatizada y su "
+        "traducción a lenguaje llano. No cubre el derecho de las personas a "
+        "saber cuándo están tratando con una IA, ni la prerrogativa de decidir "
+        "no ser afectadas por ella, que el mismo principio establece.",
+    ),
+    (
+        "Equidad y no discriminación",
+        "El marco detecta disparidad de desempeño entre subgrupos y documenta "
+        "la composición de los datos. No corrige el sesgo que encuentra, y no "
+        "cubre la accesibilidad ni la adaptación cultural y lingüística que el "
+        "principio también exige. Las categorías que la ENIA nombra —edad, "
+        "etnia, género, religión, capacidad económica y nivel formativo— no "
+        "están publicadas en los conjuntos de datos del dominio, así que la "
+        "comparación se hace entre las personas monitoreadas y no entre esas "
+        "categorías.",
+    ),
+    (
+        "Responsabilidad",
+        "El marco registra y verifica la atribución de cada decisión a un "
+        "responsable declarado. La supervisión humana efectiva sobre esas "
+        "decisiones corresponde al principio 2, fuera de alcance.",
+    ),
+)
+
+
+def alcance_declarado() -> str:
+    """Texto del alcance del marco frente a los principios de la ENIA.
+
+    Un expediente que muestre solo lo que cubre induce a error sobre lo que no.
+    """
+    cubiertos = [f"{n} ({nombre})" for n, nombre, si in PRINCIPIOS_ENIA if si]
+    fuera = [f"{n} ({nombre})" for n, nombre, si in PRINCIPIOS_ENIA if not si]
+    lineas = [
+        f"Este marco operacionaliza **{len(cubiertos)} de los "
+        f"{len(PRINCIPIOS_ENIA)} principios rectores** de la ENIA: "
+        + ", ".join(cubiertos)
+        + ".",
+        "",
+        "Quedan fuera de alcance los principios "
+        + ", ".join(fuera)
+        + ", y los cinco principios transversales de la estrategia.",
+        "",
+        "Dentro de los tres principios cubiertos, el alcance también es "
+        "parcial:",
+        "",
+    ]
+    lineas += [f"- **{nombre}.** {detalle}" for nombre, detalle in ALCANCE_PARCIAL]
+    return "\n".join(lineas)
+
+
 @dataclass(frozen=True)
 class CoberturaRequerimiento:
     """Estado de un requerimiento frente a los artefactos producidos."""

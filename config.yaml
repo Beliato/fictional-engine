@@ -374,16 +374,19 @@ trazabilidad:
 # --- Articulación normativa ---------------------------------------------------
 # Mapeo (provisional, validar con especialista legal) de cada principio de la
 # Estrategia Nacional de IA de Costa Rica con AI Act EU y NIST AI RMF.
+# Los nombres de los principios son los que usa la ENIA, no paráfrasis: el
+# quinto se llama "Responsabilidad", y la rendición de cuentas y la
+# trazabilidad son contenidos suyos, no su nombre (D53).
 articulacion_normativa:
   explicabilidad:
-    enia_cr: "Principio de transparencia y explicabilidad"
+    enia_cr: "Principio rector 3 — Transparencia y explicabilidad (ENIA, p. 32)"
     ai_act_eu: "Art. 13 — Transparencia y comunicación de información"
     nist_ai_rmf: "MEASURE 2.9 / Función EXPLAIN"
   equidad:
-    enia_cr: "Principio de equidad y no discriminación"
+    enia_cr: "Principio rector 4 — Equidad y no discriminación (ENIA, pp. 32-33)"
     ai_act_eu: "Art. 10 — Gobernanza de datos y sesgos"
     nist_ai_rmf: "MEASURE 2.11 — Sesgo perjudicial"
   trazabilidad:
-    enia_cr: "Principio de rendición de cuentas y trazabilidad"
+    enia_cr: "Principio rector 5 — Responsabilidad (ENIA, p. 33)"
     ai_act_eu: "Art. 12 — Conservación de registros (logging)"
     nist_ai_rmf: "GOVERN 1.4 / MANAGE 4.1"

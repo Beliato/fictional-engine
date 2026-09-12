@@ -16,7 +16,7 @@
 
 ## Protocolo declarado
 
-> Tomado del bloque `equidad` de `config.yaml`. Se fija **antes** de
+> Tomado del bloque `equidad` del archivo de configuración. Se fija **antes** de
 > ejecutar las pruebas y el paso 3 lo sella por hash: cualquier cambio queda
 > trazado en git con su justificación.
 

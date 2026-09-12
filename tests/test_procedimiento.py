@@ -19,6 +19,8 @@ from src.comun.utilidades import hash_archivo
 from src.equidad.reporte import tabla_protocolo
 from src.procedimiento.orquestador import ejecutar_marco
 from src.procedimiento.requerimientos import (
+    ALCANCE_PARCIAL,
+    PRINCIPIOS_ENIA,
     REQUERIMIENTOS,
     verificar_cobertura_requerimientos,
 )
@@ -454,3 +456,23 @@ def test_dos_corridas_producen_los_mismos_hashes_de_datos_y_modelo(
         uno["artefactos"]["datasheet"]["sha256"]
         == dos["artefactos"]["datasheet"]["sha256"]
     )
+
+
+def test_el_reporte_declara_el_alcance_frente_a_la_enia(ctx_documentado):
+    """Un expediente que muestre solo lo que cubre induce a error sobre lo que
+    no: la ENIA tiene siete principios rectores y el marco cubre tres (D53)."""
+    ctx = paso_6_verificacion_auditabilidad(ctx_documentado)
+    texto = ctx.artefactos["reporte_cumplimiento"].read_text(encoding="utf-8")
+
+    assert "3 de los 7 principios rectores" in texto
+    for _, nombre, _ in PRINCIPIOS_ENIA:
+        assert nombre in texto, nombre
+    # Y lo que queda fuera dentro de los tres que sí cubre.
+    assert "no ser afectadas" in texto
+    assert "No corrige el sesgo" in texto
+
+
+def test_el_alcance_declara_tres_principios_de_siete():
+    assert len(PRINCIPIOS_ENIA) == 7
+    assert sum(1 for _, _, cubierto in PRINCIPIOS_ENIA if cubierto) == 3
+    assert len(ALCANCE_PARCIAL) == 3
