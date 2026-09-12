@@ -32,8 +32,9 @@ src/
 └── procedimiento/    orquestación
     ├── pasos.py           PRECONDICIONES + los 6 pasos de la Tabla 9, como
     │                      funciones puras sobre ContextoEjecucion
-    ├── evidencia.py       ficha, datasheet, protocolo, model card, reporte,
-    │                      bitácora, manifiesto
+    ├── evidencia.py       ficha, datasheet, protocolo, model card, reporte
+    │                      de cumplimiento, bitácora de ejecución, manifiesto
+    ├── requerimientos.py  los 9 requerimientos de la Tabla 5 y su evidencia
     └── orquestador.py     entrypoint: verifica entorno, fija semilla, encadena
                            precondiciones y luego pasos
 ```

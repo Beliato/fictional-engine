@@ -3,12 +3,25 @@
 from __future__ import annotations
 
 import dataclasses
+from pathlib import Path
 
 import pytest
 
+RAIZ_REPO = Path(__file__).resolve().parents[1]
+
 from src.procedimiento.evidencia import EvidenciaIncompleta
+import json
+import shutil
+
+import yaml
+
 from src.comun.utilidades import hash_archivo
 from src.equidad.reporte import tabla_protocolo
+from src.procedimiento.orquestador import ejecutar_marco
+from src.procedimiento.requerimientos import (
+    REQUERIMIENTOS,
+    verificar_cobertura_requerimientos,
+)
 from src.procedimiento.pasos import (
     PASOS,
     PRECONDICIONES,
@@ -19,6 +32,8 @@ from src.procedimiento.pasos import (
     paso_2_documentacion_datos,
     paso_3_declaracion_criterios,
     paso_4_ejecucion_pruebas,
+    paso_5_generacion_artefactos,
+    paso_6_verificacion_auditabilidad,
     precondicion_preparar_datos,
     precondicion_sellar_modelo,
 )
@@ -183,14 +198,6 @@ def test_los_artefactos_de_los_pasos_1_y_2_son_deterministas(ctx_preparado):
     assert all(b"\r\n" not in contenido for contenido in bytes_primera)
 
 
-@pytest.mark.integracion
-@pytest.mark.lento
-@pytest.mark.skip(reason="TODO: implementar el pipeline completo")
-def test_pipeline_completo_es_reproducible(tmp_path):
-    """Dos ejecuciones con el mismo config producen manifiestos con los
-    mismos hashes de artefactos."""
-    # TODO.
-    ...
 
 
 # --- Paso 3: declaración de criterios -----------------------------------------
@@ -222,7 +229,10 @@ def test_el_protocolo_declara_los_mismos_umbrales_que_el_reporte(ctx_preparado):
 
 @pytest.fixture
 def ctx_probado(ctx_preparado):
-    return paso_4_ejecucion_pruebas(paso_3_declaracion_criterios(ctx_preparado))
+    """Los cuatro primeros pasos, en orden: el 6 exige la evidencia de todos."""
+    ctx = paso_1_caracterizacion_sistema(ctx_preparado)
+    ctx = paso_2_documentacion_datos(ctx)
+    return paso_4_ejecucion_pruebas(paso_3_declaracion_criterios(ctx))
 
 
 def test_paso_4_ejecuta_las_tres_pruebas(ctx_probado):
@@ -269,3 +279,178 @@ def test_paso_4_exige_las_precondiciones(config_piloto):
 
     with pytest.raises(PrecondicionIncumplida, match="modelo sellado"):
         paso_4_ejecucion_pruebas(ctx)
+
+
+# --- Pasos 5 y 6 --------------------------------------------------------------
+
+
+@pytest.fixture
+def ctx_documentado(ctx_probado):
+    return paso_5_generacion_artefactos(ctx_probado)
+
+
+def test_paso_5_genera_los_tres_artefactos_documentales(ctx_documentado):
+    """Tabla 9: reporte de explicabilidad, reporte de equidad y model card."""
+    ctx = ctx_documentado
+    assert {
+        "reporte_explicabilidad",
+        "reporte_equidad",
+        "model_card",
+    } <= ctx.artefactos.keys()
+
+    model_card = ctx.artefactos["model_card"].read_text(encoding="utf-8")
+    assert "{{" not in model_card
+    assert ctx.config.trazabilidad.responsable_por_defecto in model_card
+    assert ctx.modelo.hash_parametros in model_card
+
+
+def test_paso_5_exige_los_resultados_del_paso_4(ctx_preparado):
+    with pytest.raises(PrecondicionIncumplida, match="paso 4"):
+        paso_5_generacion_artefactos(ctx_preparado)
+
+
+def test_paso_6_verifica_y_sella(ctx_documentado):
+    """Comprueba el protocolo y la bitácora, documenta y recién después sella."""
+    ctx = paso_6_verificacion_auditabilidad(ctx_documentado)
+
+    assert ctx.hash_protocolo_verificado is True
+    assert ctx.informe_bitacora.valido and ctx.informe_cobertura.valido
+    assert {
+        "bitacora_ejecucion",
+        "reporte_cumplimiento",
+        "manifiesto",
+    } <= ctx.artefactos.keys()
+    assert all(fila.cubierto for fila in ctx.cobertura_requerimientos), [
+        fila.requerimiento.codigo
+        for fila in ctx.cobertura_requerimientos
+        if not fila.cubierto
+    ]
+
+    manifiesto = json.loads(ctx.artefactos["manifiesto"].read_text(encoding="utf-8"))
+    assert manifiesto["protocolo"]["hash_verificado_en_paso_6"] is True
+    assert len(manifiesto["requerimientos"]) == 9
+    # El manifiesto sella cada artefacto ya escrito, incluido él mismo salvo
+    # por su propia escritura posterior.
+    assert manifiesto["artefactos"]["datasheet"]["sha256"] == hash_archivo(
+        ctx.artefactos["datasheet"]
+    )
+
+
+def test_paso_6_detecta_un_protocolo_alterado(ctx_documentado):
+    """Si el config cambió entre el paso 3 y el 6, la evidencia lo dice."""
+    ctx = paso_6_verificacion_auditabilidad(
+        dataclasses.replace(ctx_documentado, hash_protocolo="0" * 64)
+    )
+
+    assert ctx.hash_protocolo_verificado is False
+    texto = ctx.artefactos["reporte_cumplimiento"].read_text(encoding="utf-8")
+    assert "NO CUMPLE" in texto or "EVIDENCIA INCOMPLETA" in texto
+
+
+def test_el_reporte_de_cumplimiento_declara_los_nueve_requerimientos(
+    ctx_documentado,
+):
+    ctx = paso_6_verificacion_auditabilidad(ctx_documentado)
+    texto = ctx.artefactos["reporte_cumplimiento"].read_text(encoding="utf-8")
+
+    assert "{{" not in texto
+    for requerimiento in REQUERIMIENTOS:
+        assert requerimiento.codigo in texto
+
+
+# --- Requerimientos -----------------------------------------------------------
+
+
+def test_la_matriz_declara_los_nueve_requerimientos():
+    codigos = [r.codigo for r in REQUERIMIENTOS]
+    assert codigos == [
+        "R3.1",
+        "R3.2",
+        "R3.3",
+        "R4.1",
+        "R4.2",
+        "R4.3",
+        "R5.1",
+        "R5.2",
+        "R5.3",
+    ]
+
+
+def test_sin_artefactos_ningun_requerimiento_queda_cubierto(tmp_path):
+    """Una ruta anotada sin archivo detrás no es evidencia."""
+    cobertura = verificar_cobertura_requerimientos({})
+    assert not any(fila.cubierto for fila in cobertura)
+
+    inexistente = {clave: tmp_path / "no-existe.md" for clave in ("datasheet",)}
+    cobertura = verificar_cobertura_requerimientos(inexistente)
+    por_codigo = {f.requerimiento.codigo: f for f in cobertura}
+    assert not por_codigo["R4.3"].cubierto
+
+
+# --- Orquestador --------------------------------------------------------------
+
+
+def _config_en_disco(tmp_path, crudo_sintetico, nombre):
+    """Copia el marco a un directorio temporal con su propio config.yaml.
+
+    Las rutas del config se resuelven contra el directorio que lo contiene,
+    así que esto aísla por completo la corrida.
+    """
+    raiz = tmp_path / nombre
+    (raiz / "datos" / "crudos").mkdir(parents=True)
+    (raiz / "datos" / "crudos" / "crudo.txt").write_text(
+        crudo_sintetico(dias=12, eventos_por_dia=150), encoding="utf-8"
+    )
+    shutil.copytree(RAIZ_REPO / "plantillas", raiz / "plantillas")
+
+    crudo = yaml.safe_load((RAIZ_REPO / "config.yaml").read_text(encoding="utf-8"))
+    crudo["datos"]["archivo_crudo"] = "datos/crudos/crudo.txt"
+    crudo["modelo"]["hiperparametros"]["n_estimators"] = 8
+    ruta = raiz / "config.yaml"
+    ruta.write_text(yaml.safe_dump(crudo, allow_unicode=True), encoding="utf-8")
+    return ruta
+
+
+@pytest.mark.integracion
+@pytest.mark.lento
+def test_el_pipeline_completo_genera_el_expediente(tmp_path, crudo_sintetico):
+    """Precondiciones y seis pasos de punta a punta, como los corre el CLI."""
+    resultado = ejecutar_marco(_config_en_disco(tmp_path, crudo_sintetico, "uno"))
+
+    assert resultado.completado
+    assert resultado.requerimientos_cubiertos is True
+    assert resultado.ruta_manifiesto.is_file()
+    # 0 solo si además la equidad aprueba; un hallazgo sale con 2, nunca con 1.
+    assert resultado.codigo_salida in (0, 2)
+
+    manifiesto = json.loads(resultado.ruta_manifiesto.read_text(encoding="utf-8"))
+    assert manifiesto["id_ejecucion"] == resultado.id_ejecucion
+    assert manifiesto["bitacora"]["valida"] is True
+    assert all(r["cubierto"] for r in manifiesto["requerimientos"].values())
+
+
+@pytest.mark.integracion
+@pytest.mark.lento
+def test_dos_corridas_producen_los_mismos_hashes_de_datos_y_modelo(
+    tmp_path, crudo_sintetico
+):
+    """Los artefactos que no llevan la marca de la corrida son idénticos."""
+    # Mismo identificador en las dos: lo que debe repetirse es el contenido,
+    # no la identidad de la corrida (D46).
+    primera = ejecutar_marco(
+        _config_en_disco(tmp_path, crudo_sintetico, "uno"), "corrida-fija"
+    )
+    segunda = ejecutar_marco(
+        _config_en_disco(tmp_path, crudo_sintetico, "dos"), "corrida-fija"
+    )
+
+    uno = json.loads(primera.ruta_manifiesto.read_text(encoding="utf-8"))
+    dos = json.loads(segunda.ruta_manifiesto.read_text(encoding="utf-8"))
+
+    assert uno["datos"] == dos["datos"]
+    assert uno["modelo"] == dos["modelo"]
+    assert uno["equidad"]["estado"] == dos["equidad"]["estado"]
+    assert (
+        uno["artefactos"]["datasheet"]["sha256"]
+        == dos["artefactos"]["datasheet"]["sha256"]
+    )

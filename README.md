@@ -101,8 +101,9 @@ Ejecución directa del orquestador:
 python -m src.procedimiento.orquestador --config config.yaml
 ```
 
-Códigos de salida: `0` completo y equidad aprueba · `2` completo pero equidad
-**no** aprueba · `1` error de ejecución.
+Códigos de salida: `0` completo, con la equidad aprobada y los nueve
+requerimientos cubiertos · `2` completo pero con hallazgos (la equidad no
+aprueba, no es evaluable, o falta evidencia) · `1` error de ejecución.
 
 ---
 
