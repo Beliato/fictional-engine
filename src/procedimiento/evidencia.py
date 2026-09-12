@@ -25,6 +25,7 @@ from src.comun.utilidades import (
     asegurar_directorio,
     rellenar_plantilla,
 )
+from src.equidad.reporte import lista_limitaciones, tabla_protocolo
 from src.explicabilidad.lenguaje import formatear_decimal, formatear_miles
 
 if TYPE_CHECKING:
@@ -239,11 +240,71 @@ def generar_protocolo_evaluacion(ctx: "ContextoEjecucion") -> Path:
     umbrales no se ajustaron a los resultados no es verificable por un
     auditor externo.
 
-    TODO: sustituir marcadores desde `config.equidad`; calcular el hash del
-        config y devolverlo en `ctx.hash_protocolo`; escribir en
-        `config.rutas.protocolo_evaluacion`.
+    El hash lo sella el paso 3 antes de llamar aquí; este generador solo lo
+    declara. Las métricas y sus umbrales se toman de la misma función que
+    usa el reporte de equidad, para que el expediente no pueda afirmar dos
+    protocolos distintos para la misma corrida.
+
+    Raises:
+        EvidenciaIncompleta: si el protocolo todavía no se selló.
+        PlantillaIncompleta: si la plantilla declara un marcador sin valor.
     """
-    raise NotImplementedError
+    from src.comun.semillas import instantanea_entorno
+
+    config = ctx.config
+    entorno = instantanea_entorno()
+    valores = {
+        "id_ejecucion": ctx.id_ejecucion,
+        "marca_temporal": ctx.marca_inicio,
+        "hash_protocolo": _exigir(ctx.hash_protocolo, "el hash del protocolo"),
+        "commit_git": entorno["git_commit"]
+        + ("" if entorno["git_arbol_limpio"] == "sí" else " (árbol con cambios sin confirmar)"),
+        "tabla_subgrupos": _tabla_subgrupos(config),
+        "justificacion_subgrupos": _derivacion_subgrupos(config),
+        "tabla_umbrales": tabla_protocolo(config),
+        "justificacion_umbrales": config.equidad.justificacion_umbrales,
+        "limitaciones": lista_limitaciones(config),
+        "metricas_desempeno": _metricas_desempeno(config),
+    }
+    return _escribir(
+        Path(config.rutas.protocolo_evaluacion),
+        rellenar_plantilla(_plantilla(ctx, "protocolo_evaluacion.md"), valores),
+    )
+
+
+def _tabla_subgrupos(config: "Configuracion") -> str:
+    filas = ["| Subgrupo | Columna | Categorías |", "|---|---|---|"]
+    for subgrupo in config.equidad.subgrupos:
+        categorias = (
+            ", ".join(subgrupo.categorias)
+            if subgrupo.categorias
+            else "las presentes en los datos"
+        )
+        filas.append(
+            f"| {subgrupo.nombre} | `{subgrupo.columna}` | {categorias} |"
+        )
+    filas.append("")
+    filas.append(
+        "- **Soporte mínimo:** "
+        f"{formatear_miles(config.equidad.soporte_minimo)} casos en el "
+        "denominador de cada tasa; cada actividad se evalúa contra el resto."
+    )
+    return "\n".join(filas)
+
+
+def _metricas_desempeno(config: "Configuracion") -> str:
+    """Métricas de desempeño desagregado declaradas para el R4.1."""
+    return "\n".join(
+        [
+            "Por cada categoría de cada subgrupo: número de ventanas, "
+            "actividades presentes, exactitud, y precisión, exhaustividad y "
+            "F1 promediadas en macro sobre las actividades que aparecen en "
+            "las etiquetas reales de esa categoría.",
+            "",
+            "No se optimizan: se miden. El modelo es sujeto de prueba, no "
+            "objeto de optimización (Tabla 10).",
+        ]
+    )
 
 
 def generar_model_card(ctx: "ContextoEjecucion") -> Path:

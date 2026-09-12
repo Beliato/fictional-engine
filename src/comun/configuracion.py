@@ -180,6 +180,8 @@ class ConfigEquidad:
     descriptivas: tuple[str, ...]
     # Limitaciones propias del dataset que el reporte declara tal cual.
     limitaciones: tuple[str, ...]
+    # Por qué esos umbrales y no otros. Va al protocolo del paso 3.
+    justificacion_umbrales: str
 
 
 @dataclass(frozen=True)
@@ -210,6 +212,9 @@ class Rutas:
 class Configuracion:
     """Configuración completa y validada del marco."""
 
+    # Archivo del que se cargó. El paso 3 sella su hash para demostrar que el
+    # protocolo no cambió después de ver resultados (D13, D47).
+    ruta_archivo: Path
     version_marco: str
     semilla: int
     pythonhashseed: int
@@ -590,6 +595,7 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
             "umbrales",
             "descriptivas",
             "limitaciones",
+            "justificacion_umbrales",
         },
         "equidad",
     )
@@ -684,6 +690,9 @@ def _leer_equidad(crudo: dict[str, Any]) -> ConfigEquidad:
         descriptivas=descriptivas,
         limitaciones=_lista_de_textos(
             bloque["limitaciones"], "equidad.limitaciones"
+        ),
+        justificacion_umbrales=_texto_no_vacio(
+            bloque["justificacion_umbrales"], "equidad.justificacion_umbrales"
         ),
     )
 
@@ -786,6 +795,7 @@ def cargar_configuracion(ruta: str | Path = "config.yaml") -> Configuracion:
     }
 
     config = Configuracion(
+        ruta_archivo=ruta.resolve(),
         version_marco=_texto_no_vacio(crudo["version_marco"], "version_marco"),
         semilla=semilla,
         pythonhashseed=_tipo(

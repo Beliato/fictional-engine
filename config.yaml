@@ -341,6 +341,21 @@ equidad:
   descriptivas:
     - demographic_parity_difference
     - selection_rate_ratio              # "regla del 80 %"
+  # Justificación de los umbrales, que el protocolo del paso 3 declara tal
+  # cual. La tesis (Capítulo 6) deja la calibración definitiva a un panel de
+  # especialistas: mientras tanto, el criterio se declara y se somete a
+  # revisión, que es lo que exige el R4.2.
+  justificacion_umbrales: >-
+    No existe un umbral normativo para diferencias absolutas de tasas en este
+    dominio. Se adopta 0,10 —diez puntos porcentuales— como criterio propio
+    para señalar una disparidad relevante entre categorías: por debajo de ese
+    margen, la diferencia queda dentro de lo que el tamaño de los subgrupos
+    de este conjunto de evaluación permite distinguir del azar. La regla del
+    80 %, que sí tiene origen normativo en la selección de personal, se
+    reporta como descriptiva porque presupone un resultado favorable que en
+    la clasificación de actividades no existe. Ambos criterios quedan
+    sujetos a la validación por un panel multidisciplinario prevista en el
+    Capítulo 6.
 
 # --- Principio 3: Trazabilidad ------------------------------------------
 trazabilidad:

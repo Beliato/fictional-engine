@@ -93,7 +93,7 @@ def generar_reporte_equidad(
         "tabla_incumplidas": _tabla_resultados(
             veredicto.metricas_incumplidas(), "_Ninguna._"
         ),
-        "tabla_protocolo": _tabla_protocolo(config),
+        "tabla_protocolo": tabla_protocolo(config),
         "soporte_minimo": formatear_miles(config.equidad.soporte_minimo),
         "lista_subgrupos": _lista_subgrupos(config),
         "tabla_desempeno_desagregado": _tabla_desempeno(desempeno),
@@ -105,7 +105,7 @@ def generar_reporte_equidad(
             veredicto.descriptivas(), "_No se declararon métricas descriptivas._"
         ),
         "notas_interpretacion": _notas(config),
-        "limitaciones": _limitaciones(config),
+        "limitaciones": lista_limitaciones(config),
     }
     texto = rellenar_plantilla(plantilla, valores)
     with destino.open("w", encoding="utf-8", newline="\n") as f:
@@ -147,7 +147,12 @@ def _resumen(veredicto: "VeredictoEquidad") -> str:
     return "\n".join(lineas)
 
 
-def _tabla_protocolo(config: "Configuracion") -> str:
+def tabla_protocolo(config: "Configuracion") -> str:
+    """Métricas declaradas, su papel y su umbral.
+
+    La comparten el protocolo del paso 3 y este reporte: si divergieran, el
+    expediente afirmaría dos protocolos distintos para la misma corrida.
+    """
     filas = [
         "| Métrica | Nombre técnico | Papel | Umbral | Cumple si |",
         "|---|---|---|---:|---|",
@@ -277,7 +282,8 @@ def _notas(config: "Configuracion") -> str:
     )
 
 
-def _limitaciones(config: "Configuracion") -> str:
+def lista_limitaciones(config: "Configuracion") -> str:
+    """Limitaciones declaradas en la configuración, como viñetas."""
     if not config.equidad.limitaciones:
         return "_La configuración no declara limitaciones._"
     return "\n".join(f"- {texto}" for texto in config.equidad.limitaciones)

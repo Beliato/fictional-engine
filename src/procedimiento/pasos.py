@@ -28,15 +28,27 @@ from src.comun.datos import (
     cargar_crudo,
     construir_caracteristicas,
     hash_dataframe,
+    hash_filas,
     particionar,
     validar_esquema,
 )
-from src.comun.modelado import entrenar
+from src.comun.modelado import entrenar, predecir_con_confianza
 from src.comun.utilidades import ahora_utc_iso, hash_archivo
+from src.equidad.desempeno_desagregado import calcular_desempeno, guardar_desempeno
+from src.equidad.metricas_equidad import evaluar_equidad, guardar_metricas
+from src.explicabilidad.atribucion_global import calcular_importancia_global
+from src.explicabilidad.atribucion_local import (
+    construir_explainer,
+    explicar_lote,
+    referencia_de,
+)
 from src.procedimiento.evidencia import (
     generar_datasheet,
     generar_ficha_caracterizacion,
+    generar_protocolo_evaluacion,
 )
+from src.trazabilidad.registro import RegistroEstructurado
+from src.trazabilidad.verificacion import verificar_cobertura, verificar_registro
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -68,6 +80,14 @@ class ContextoEjecucion:
     # que los umbrales de equidad no se tocaron después de ver resultados.
     hash_protocolo: str | None = None
     veredicto_equidad: "VeredictoEquidad | None" = None
+    # Resultados del paso 4, que los pasos 5 y 6 consolidan.
+    ids_prueba: tuple[str, ...] = ()
+    predicciones: "pd.Series | None" = None
+    explicaciones: list[Any] = field(default_factory=list)
+    explicacion_global: Any = None
+    desempeno_equidad: list[Any] = field(default_factory=list)
+    informe_bitacora: Any = None
+    informe_cobertura: Any = None
     artefactos: dict[str, Path] = field(default_factory=dict)
     eventos: list[dict[str, Any]] = field(default_factory=list)
 
@@ -256,10 +276,20 @@ def paso_3_declaracion_criterios(ctx: ContextoEjecucion) -> ContextoEjecucion:
     criterios se alteraron después de ver resultados y la evidencia queda
     marcada como no válida.
 
-    TODO: delegar en
-        `src.procedimiento.evidencia.generar_protocolo_evaluacion`.
+    Se sella el hash del archivo `config.yaml`, no de la configuración ya
+    cargada: un auditor lo reproduce con `sha256sum config.yaml` sin ejecutar
+    nada del marco.
+
+    Raises:
+        EvidenciaIncompleta: si falta algún dato que el protocolo declara.
     """
-    raise NotImplementedError
+    ctx = replace(ctx, hash_protocolo=hash_archivo(ctx.config.ruta_archivo))
+    return _registrar_artefacto(
+        ctx,
+        "paso_3_declaracion_criterios",
+        "protocolo_evaluacion",
+        generar_protocolo_evaluacion(ctx),
+    )
 
 
 def paso_4_ejecucion_pruebas(ctx: ContextoEjecucion) -> ContextoEjecucion:
@@ -283,11 +313,103 @@ def paso_4_ejecucion_pruebas(ctx: ContextoEjecucion) -> ContextoEjecucion:
 
     Un veredicto de equidad negativo NO aborta el pipeline: es evidencia.
 
-    TODO: delegar en `src.explicabilidad.*`, `src.equidad.*` y
-        `src.trazabilidad.{registro, verificacion}`; guardar rutas de
-        artefactos y `VeredictoEquidad` en el contexto.
+    El identificador de cada inferencia es `ven-NNNNN`, la posición de la
+    ventana en el conjunto de evaluación ordenado temporalmente. La bitácora
+    guarda el hash de la fila de entrada, nunca los eventos (D47).
+
+    Raises:
+        PrecondicionIncumplida: si faltan datos o modelo.
+        BitacoraExistente: si la bitácora ya tiene registros de otra corrida.
     """
-    raise NotImplementedError
+    config = ctx.config
+    if ctx.particion is None or ctx.modelo is None:
+        raise PrecondicionIncumplida(
+            "el paso 4 necesita los datos preparados y el modelo sellado; "
+            "las precondiciones deben correr antes"
+        )
+    particion, modelo = ctx.particion, ctx.modelo
+    X, y = particion.X_prueba, particion.y_prueba
+    ids = [f"ven-{i:05d}" for i in range(len(X))]
+    predicciones, confianza = predecir_con_confianza(modelo, X)
+
+    # --- Explicabilidad (R3.1, R3.2) ---
+    explicaciones = explicar_lote(
+        construir_explainer(modelo, config), modelo, X, ids, config
+    )
+    global_ = calcular_importancia_global(explicaciones, config)
+
+    # --- Equidad (R4.1, R4.2) ---
+    sensibles = particion.sensibles_prueba
+    desempeno = calcular_desempeno(y, predicciones, sensibles, config)
+    veredicto = evaluar_equidad(y, predicciones, sensibles, config)
+    ruta_desempeno = guardar_desempeno(desempeno, config)
+    ruta_metricas = guardar_metricas(veredicto, config)
+
+    # --- Trazabilidad (R5.1) ---
+    ruta_bitacora = Path(config.rutas.registro_inferencias)
+    _exigir_bitacora_nueva(ruta_bitacora)
+    RegistroEstructurado(ruta_bitacora, config).registrar_lote(
+        {
+            "id_evento": id_evento,
+            "referencia_entrada": referencia,
+            "salida_modelo": str(prediccion),
+            "confianza": float(probabilidad),
+            "referencia_explicacion": referencia_de(explicacion, config),
+        }
+        for id_evento, referencia, prediccion, probabilidad, explicacion in zip(
+            ids, hash_filas(X), predicciones, confianza, explicaciones
+        )
+    )
+    informe = verificar_registro(ruta_bitacora, config)
+    cobertura = verificar_cobertura(ruta_bitacora, set(ids), config)
+
+    evaluadas, posibles = veredicto.cobertura
+    ctx = replace(
+        ctx,
+        ids_prueba=tuple(ids),
+        predicciones=predicciones,
+        explicaciones=explicaciones,
+        explicacion_global=global_,
+        desempeno_equidad=desempeno,
+        veredicto_equidad=veredicto,
+        informe_bitacora=informe,
+        informe_cobertura=cobertura,
+        artefactos={
+            **ctx.artefactos,
+            "explicaciones_locales": Path(explicaciones[0].ruta_artefacto),
+            "importancia_global": global_.ruta_tabla,
+            "figura_importancia_global": global_.ruta_figura_resumen,
+            "desempeno_desagregado": ruta_desempeno,
+            "metricas_equidad": ruta_metricas,
+            "bitacora": ruta_bitacora,
+        },
+    )
+    return registrar_evento(
+        ctx,
+        "paso_4_ejecucion_pruebas",
+        inferencias=len(ids),
+        explicaciones=len(explicaciones),
+        veredicto_equidad=veredicto.estado,
+        cobertura_equidad=f"{evaluadas}/{posibles}",
+        bitacora_valida=informe.valido,
+        cobertura_bitacora=cobertura.valido,
+        problemas=[*informe.problemas, *cobertura.problemas][:5],
+    )
+
+
+def _exigir_bitacora_nueva(ruta: Path) -> None:
+    """La bitácora es append-only (D5): no se puede continuar otra corrida.
+
+    Raises:
+        BitacoraExistente: si el archivo ya tiene registros. Mezclar dos
+            ejecuciones produciría ids duplicados y una evidencia que no
+            corresponde a ninguna de las dos.
+    """
+    if ruta.exists() and ruta.stat().st_size > 0:
+        raise BitacoraExistente(
+            f"la bitácora {ruta} ya contiene registros de otra ejecución; "
+            "archívela o bórrela antes de volver a ejecutar el paso 4"
+        )
 
 
 def paso_5_generacion_artefactos(ctx: ContextoEjecucion) -> ContextoEjecucion:
@@ -335,6 +457,10 @@ def paso_6_verificacion_auditabilidad(ctx: ContextoEjecucion) -> ContextoEjecuci
 
 class PrecondicionIncumplida(RuntimeError):
     """Un paso se invocó sin que su precondición hubiera corrido."""
+
+
+class BitacoraExistente(RuntimeError):
+    """La bitácora ya tiene registros de otra ejecución."""
 
 
 PASOS = (
