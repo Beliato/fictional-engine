@@ -108,6 +108,8 @@ class ConfigDatos:
     sensores_puerta: tuple[str, ...]
     sensores_temperatura: tuple[str, ...]
     zonas: dict[str, str]
+    # Zona -> nombre para mostrar, en el idioma de las personas destinatarias.
+    nombres_zona: dict[str, str]
     actividades: ConfigActividades
     franjas_horarias: tuple[FranjaHoraria, ...]
     ventana: ConfigVentana
@@ -423,6 +425,7 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
             "sensores_puerta",
             "sensores_temperatura",
             "zonas",
+            "nombres_zona",
             "actividades",
             "franjas_horarias",
             "ventana",
@@ -496,6 +499,22 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
         for s, z in zonas_crudas.items()
     }
 
+    nombres_crudos = _exigir_mapa(bloque["nombres_zona"], "datos.nombres_zona")
+    nombres_zona = {
+        _texto_no_vacio(zona, "datos.nombres_zona (clave)"): _texto_no_vacio(
+            nombre, f"datos.nombres_zona.{zona}"
+        )
+        for zona, nombre in nombres_crudos.items()
+    }
+    # Traducir una zona que no existe delata un nombre mal escrito, y el
+    # reporte seguiría mostrando el identificador sin que nadie se entere.
+    desconocidas = sorted(set(nombres_zona) - set(zonas.values()))
+    if desconocidas:
+        raise ConfiguracionInvalida(
+            f"datos.nombres_zona: {desconocidas} no son zonas declaradas en "
+            f"datos.zonas; las zonas son {sorted(set(zonas.values()))}"
+        )
+
     pir = _lista_de_textos(
         bloque["columnas_sensor_pir"], "datos.columnas_sensor_pir"
     )
@@ -523,6 +542,7 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
             bloque["sensores_temperatura"], "datos.sensores_temperatura"
         ),
         zonas=zonas,
+        nombres_zona=nombres_zona,
         actividades=ConfigActividades(
             etiqueta_sin_actividad=_texto_no_vacio(
                 actividades["etiqueta_sin_actividad"],

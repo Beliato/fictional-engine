@@ -70,6 +70,13 @@ def _config(
         **{s: s for s in SENSORES},
         "OutsideDoor_Puerta": "OutsideDoor",
     }
+    crudo["datos"]["nombres_zona"] = {
+        "Bathroom": "el baño",
+        "Bedroom": "el dormitorio",
+        "Kitchen": "la cocina",
+        "LivingRoom": "la sala",
+        "OutsideDoor": "la puerta de salida",
+    }
     crudo["datos"]["actividades"]["excluidas"] = []
     crudo["datos"]["actividades"].update(ajustes_actividades or {})
     crudo["datos"]["ventana"]["n_eventos"] = 10

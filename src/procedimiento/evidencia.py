@@ -376,7 +376,7 @@ def generar_model_card(ctx: "ContextoEjecucion") -> Path:
             f"`{config.explicabilidad.perturbacion}`"
         ),
         "importancia_global_top": ", ".join(
-            f"{etiqueta_caracteristica(nombre)} "
+            f"{etiqueta_caracteristica(nombre, config.datos.nombres_zona)} "
             f"({formatear_decimal(global_.importancia_media_abs[nombre], 3)})"
             for nombre in global_.top(3)
         ),
@@ -526,7 +526,8 @@ def _resumen_explicabilidad(ctx: "ContextoEjecucion") -> str:
 
     global_ = _exigir(ctx.explicacion_global, "la importancia global")
     destacadas = ", ".join(
-        etiqueta_caracteristica(nombre) for nombre in global_.top(3)
+        etiqueta_caracteristica(nombre, ctx.config.datos.nombres_zona)
+        for nombre in global_.top(3)
     )
     return (
         f"Se explicaron {formatear_miles(global_.n_explicaciones)} inferencias, "

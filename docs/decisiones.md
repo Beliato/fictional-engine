@@ -951,3 +951,33 @@ la documentación, no en una comparación entre edades que sería imposible.
 (p. 32), y las explicaciones del piloto nombran las zonas en inglés
 (`Movimiento en LoungeChair`). D39 lo anotaba como limitación cosmética: es un
 incumplimiento de equidad, y se corrige con un mapeo de nombres para mostrar.
+
+## D54 — Los nombres de zona se muestran en el idioma de las personas
+Las explicaciones decían "Movimiento en LoungeChair" y "9 activaciones de
+movimiento en Kitchen". D39 lo anotó como limitación cosmética. No lo era: la
+ENIA exige sistemas cultural y lingüísticamente apropiados (MICITT, 2024,
+p. 32) y el R3.3 exige información comprensible para destinatarios no
+técnicos. Para una cuidadora hispanohablante, "LoungeChair" no es información.
+
+`datos.nombres_zona` traduce cada zona al idioma de las personas
+destinatarias. Ahora el enunciado dice "9 activaciones de movimiento en la
+cocina" y "1 activación de movimiento en el dormitorio".
+
+**Es traducción de presentación, no de datos.** Las columnas, los
+identificadores y los nombres técnicos no cambian, y el reporte de
+explicabilidad sigue mostrando el nombre técnico en su propia columna: un
+auditor puede ir de la frase a la característica sin ambigüedad.
+
+**Una zona sin traducción muestra su identificador.** Es preferible a ocultar
+que falta: se ve en el reporte y se corrige.
+
+**Traducir una zona inexistente es un error de configuración.** Un nombre mal
+escrito pasaría desapercibido —el reporte seguiría mostrando el identificador—
+y el cargador lo rechaza con la lista de zonas declaradas.
+
+**Lo que esto no arregla.** El resto de la adaptación cultural y lingüística
+que pide la ENIA sigue fuera de alcance: los nombres de actividad
+(`Meal_Preparation`, `Bed_Toilet_Transition`) vienen del dataset y se muestran
+tal cual. Traducirlos exigiría un mapeo de etiquetas y afectaría a las tablas
+de equidad, donde el nombre técnico es la clave de comparación. Queda
+declarado.

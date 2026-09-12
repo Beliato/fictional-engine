@@ -377,10 +377,11 @@ def test_redacta_en_lenguaje_llano(config_expl):
     assert "«Meal_Preparation»" in texto
     assert "77 %" in texto  # 0,30 + 0,40 + 0,12 − 0,05
     assert (
-        "Pesó a favor: 9 activaciones de movimiento en Kitchen y la hora del día (8 h)."
+        "Pesó a favor: 9 activaciones de movimiento en la cocina y la hora "
+        "del día (8 h)."
         in texto
     )
-    assert "Pesó en contra: 1 activación de movimiento en Bedroom." in texto
+    assert "Pesó en contra: 1 activación de movimiento en el dormitorio." in texto
     assert "puerta" not in texto  # contribución nula, fuera de las destacadas
 
 
@@ -499,3 +500,41 @@ def test_las_tablas_muestran_los_valores_en_sus_unidades(nombre, valor, esperado
     from src.explicabilidad.lenguaje import formatear_valor
 
     assert formatear_valor(nombre, valor) == esperado
+
+
+def test_los_enunciados_no_filtran_identificadores_de_zona(config_expl):
+    """La ENIA exige sistemas lingüísticamente apropiados (p. 32) y el R3.3,
+    información comprensible: un identificador en inglés no lo es (D54)."""
+    explicacion = _explicacion(
+        {"conteo_Kitchen": 0.4, "conteo_Bedroom": -0.05},
+        {"conteo_Kitchen": 9, "conteo_Bedroom": 1},
+    )
+    texto = redactar_explicacion(explicacion, config_expl)
+
+    assert "Kitchen" not in texto and "Bedroom" not in texto
+
+
+def test_una_zona_sin_traduccion_muestra_su_identificador():
+    """Preferible a ocultar que falta: se ve en el reporte y se corrige."""
+    from src.explicabilidad.lenguaje import etiqueta_caracteristica
+
+    nombres = {"Kitchen": "la cocina"}
+    assert etiqueta_caracteristica("conteo_Kitchen", nombres) == "Movimiento en la cocina"
+    assert etiqueta_caracteristica("conteo_Attic", nombres) == "Movimiento en Attic"
+    assert etiqueta_caracteristica("conteo_Kitchen") == "Movimiento en Kitchen"
+
+
+def test_traducir_una_zona_inexistente_es_un_error(tmp_path):
+    """Delata un nombre mal escrito; sin esto el reporte seguiría mostrando el
+    identificador y nadie se enteraría."""
+    import yaml
+
+    from src.comun.configuracion import ConfiguracionInvalida, cargar_configuracion
+
+    crudo = yaml.safe_load((RAIZ / "config.yaml").read_text(encoding="utf-8"))
+    crudo["datos"]["nombres_zona"]["Altillo"] = "el altillo"
+    ruta = tmp_path / "config.yaml"
+    ruta.write_text(yaml.safe_dump(crudo, allow_unicode=True), encoding="utf-8")
+
+    with pytest.raises(ConfiguracionInvalida, match="Altillo"):
+        cargar_configuracion(ruta)
