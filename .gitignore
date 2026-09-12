@@ -18,6 +18,9 @@ datos/crudos/*
 datos/intermedios/*
 !datos/intermedios/.gitkeep
 
+# --- Configuración derivada de la demo (la genera scripts/preparar_demo.py) ---
+config.demo.yaml
+
 # --- Artefactos generados (salida reproducible del pipeline) ---
 artefactos/*
 !artefactos/.gitkeep

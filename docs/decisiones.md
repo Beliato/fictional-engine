@@ -720,3 +720,33 @@ manifiesto— cambian con el identificador y la marca de tiempo. Lo que debe
 repetirse es el contenido: con el mismo identificador, dos corridas producen
 los mismos hashes de datos, de modelo y de los artefactos técnicos. La prueba
 de integración lo verifica así.
+
+## D49 — La demo deriva su configuración y escribe aparte
+El pipeline completo tarda unos 17 minutos, casi todo en explicar con SHAP las
+11.175 inferencias del conjunto de evaluación. Eso no se puede mostrar en
+vivo, así que `make demo` corre **el mismo procedimiento** sobre los primeros
+20 días: 4.457 ventanas, 1.054 inferencias, 28 segundos.
+
+La configuración de la demo se **deriva** de `config.yaml` en vez de mantener
+una copia. Dos configuraciones paralelas se desincronizan, y entonces la demo
+dejaría de mostrar el protocolo real: mismos umbrales, mismos subgrupos, mismo
+soporte mínimo, mismo modelo. Lo único que cambia es cuántos datos entran y
+dónde se escriben los artefactos. `config.demo.yaml` es generado y no se
+versiona.
+
+**El corte es por día, no por número de líneas.** La partición del marco es
+temporal: un día a medias produciría una ventana que mezcla jornadas.
+
+**Todas las rutas de artefactos se reubican, incluida `rutas.artefactos`.** La
+primera versión solo reescribía las que empiezan con `artefactos/`, y esa
+clave vale exactamente `artefactos`, sin barra. Como los módulos de
+explicabilidad y equidad derivan sus subcarpetas de ella, la demo escribió
+encima del expediente del piloto y hubo que regenerarlo. El expediente de una
+corrida no puede depender de que otra no lo pise.
+
+**`make` no trata el código 2 como fallo.** El orquestador devuelve 2 cuando
+hay hallazgos —equidad que no aprueba o evidencia incompleta— y eso no es un
+error de ejecución (D9). El target falla solo con código 1.
+
+El guion de la demostración está en `docs/demo.md`: qué mostrar, en qué orden
+y qué preguntas responde cada artefacto.
