@@ -623,3 +623,41 @@ de tiempo.
 **Revisar:** los textos de `sistema` son un borrador redactado a partir del
 Capítulo 1 y de la Tabla 10; conviene revisarlos con criterio propio, en
 especial la finalidad y las vías de impugnación.
+
+## D47 — Sellado del protocolo, identidad de las inferencias y bitácora irrepetible
+El paso 3 sella el **hash del archivo** `config.yaml`, no el de la
+configuración ya cargada. Un auditor lo reproduce con `sha256sum config.yaml`
+sin ejecutar nada del marco, y por eso `Configuracion` recuerda de qué
+archivo se cargó. El paso 6 lo volverá a comprobar (D13).
+
+La tabla de métricas y umbrales del protocolo y la del reporte de equidad
+salen de la misma función. Si cada artefacto la construyera por su cuenta,
+el expediente podría afirmar dos protocolos distintos para la misma corrida.
+
+**Identificador de inferencia.** `ven-NNNNN`, la posición de la ventana en el
+conjunto de evaluación ordenado temporalmente. Es estable mientras lo sean
+los datos y la partición, y ambos están sellados por hash. La bitácora, las
+explicaciones locales y la verificación de cobertura usan el mismo
+identificador, que es lo que permite ir de una decisión a su explicación
+(R5.1, R5.3).
+
+**Referencia de entrada.** SHA-256 de la fila de características, no los
+eventos. La bitácora de un sistema de monitoreo domiciliario no debe
+contener la rutina de la vivienda: el hash prueba qué entrada produjo la
+inferencia sin volver a exponerla (Tabla 8).
+
+**La bitácora no se reabre.** Si el archivo ya tiene registros, el paso 4
+falla en vez de añadir. Es append-only por diseño (D5): mezclar dos corridas
+produciría identificadores duplicados y una evidencia que no corresponde a
+ninguna de las dos. Archivar o borrar es una decisión de quien opera, no del
+marco, así que el error dice qué hacer y se detiene.
+
+**Justificación de los umbrales como dato.** `equidad.justificacion_umbrales`
+la declara y el protocolo la copia. El 0,10 es un criterio propio, no
+normativo, y así queda dicho: la tesis deja la calibración definitiva a un
+panel de especialistas (Capítulo 6).
+
+**Instantánea del entorno.** Declara el commit de git **y** si el árbol de
+trabajo tenía cambios sin confirmar. Un commit con el árbol sucio no
+identifica el código que corrió; omitir ese detalle haría el manifiesto más
+prolijo y menos cierto.

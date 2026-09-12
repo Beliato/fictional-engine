@@ -7,16 +7,22 @@ import dataclasses
 import pytest
 
 from src.procedimiento.evidencia import EvidenciaIncompleta
+from src.comun.utilidades import hash_archivo
+from src.equidad.reporte import tabla_protocolo
 from src.procedimiento.pasos import (
     PASOS,
     PRECONDICIONES,
+    BitacoraExistente,
     PrecondicionIncumplida,
     nuevo_contexto,
     paso_1_caracterizacion_sistema,
     paso_2_documentacion_datos,
+    paso_3_declaracion_criterios,
+    paso_4_ejecucion_pruebas,
     precondicion_preparar_datos,
     precondicion_sellar_modelo,
 )
+from src.trazabilidad.registro import leer_registros
 
 
 def test_hay_exactamente_seis_pasos():
@@ -75,6 +81,8 @@ def config_piloto(config, tmp_path, crudo_sintetico):
         artefactos=artefactos,
         ficha_caracterizacion=artefactos / "ficha_caracterizacion.md",
         datasheet=artefactos / "datasheet.md",
+        protocolo_evaluacion=artefactos / "protocolo_evaluacion.md",
+        registro_inferencias=artefactos / "bitacora" / "inferencias.jsonl",
     )
     datos = dataclasses.replace(config.datos, archivo_crudo=crudo)
     modelo = dataclasses.replace(
@@ -183,3 +191,81 @@ def test_pipeline_completo_es_reproducible(tmp_path):
     mismos hashes de artefactos."""
     # TODO.
     ...
+
+
+# --- Paso 3: declaración de criterios -----------------------------------------
+
+
+def test_paso_3_sella_el_hash_del_archivo_de_configuracion(ctx_preparado):
+    """El hash es del archivo, no de la configuración ya cargada: un auditor
+    lo reproduce con sha256sum sin ejecutar el marco (D13, D47)."""
+    ctx = paso_3_declaracion_criterios(ctx_preparado)
+    texto = ctx.artefactos["protocolo_evaluacion"].read_text(encoding="utf-8")
+
+    assert ctx.hash_protocolo == hash_archivo(ctx.config.ruta_archivo)
+    assert "{{" not in texto
+    assert ctx.hash_protocolo in texto
+    assert ctx.config.equidad.justificacion_umbrales in texto
+
+
+def test_el_protocolo_declara_los_mismos_umbrales_que_el_reporte(ctx_preparado):
+    """Una sola fuente para la tabla de umbrales: si divergieran, el
+    expediente afirmaría dos protocolos distintos para la misma corrida."""
+    ctx = paso_3_declaracion_criterios(ctx_preparado)
+    texto = ctx.artefactos["protocolo_evaluacion"].read_text(encoding="utf-8")
+
+    assert tabla_protocolo(ctx.config) in texto
+
+
+# --- Paso 4: ejecución de las pruebas -----------------------------------------
+
+
+@pytest.fixture
+def ctx_probado(ctx_preparado):
+    return paso_4_ejecucion_pruebas(paso_3_declaracion_criterios(ctx_preparado))
+
+
+def test_paso_4_ejecuta_las_tres_pruebas(ctx_probado):
+    """Explicabilidad, equidad y trazabilidad sobre el mismo conjunto."""
+    ctx = ctx_probado
+    n = len(ctx.particion.X_prueba)
+
+    assert len(ctx.explicaciones) == n
+    assert len(ctx.ids_prueba) == n
+    assert ctx.explicacion_global.n_explicaciones == n
+    assert ctx.desempeno_equidad and ctx.veredicto_equidad is not None
+    assert ctx.informe_bitacora.valido, ctx.informe_bitacora.problemas
+    assert ctx.informe_cobertura.valido, ctx.informe_cobertura.problemas
+    assert ctx.informe_bitacora.n_registros == n
+    assert {
+        "bitacora",
+        "metricas_equidad",
+        "explicaciones_locales",
+    } <= ctx.artefactos.keys()
+
+
+def test_la_bitacora_referencia_la_explicacion_de_cada_inferencia(ctx_probado):
+    """R5.1: cada decisión registrada apunta a su atribución local."""
+    registros = list(leer_registros(ctx_probado.artefactos["bitacora"]))
+
+    assert [r.id_evento for r in registros] == list(ctx_probado.ids_prueba)
+    for registro in registros:
+        archivo, _, fragmento = registro.referencia_explicacion.partition("#")
+        assert fragmento == registro.id_evento
+        assert archivo.endswith(".jsonl")
+        # La bitácora guarda el hash de la entrada, nunca los eventos.
+        assert len(registro.referencia_entrada) == 64
+
+
+def test_paso_4_no_reabre_una_bitacora_de_otra_corrida(ctx_probado):
+    """Append-only (D5): dos corridas en un mismo archivo producirían ids
+    duplicados y una evidencia que no corresponde a ninguna de las dos."""
+    with pytest.raises(BitacoraExistente, match="arch"):
+        paso_4_ejecucion_pruebas(ctx_probado)
+
+
+def test_paso_4_exige_las_precondiciones(config_piloto):
+    ctx = nuevo_contexto(config_piloto, "prueba-001")
+
+    with pytest.raises(PrecondicionIncumplida, match="modelo sellado"):
+        paso_4_ejecucion_pruebas(ctx)

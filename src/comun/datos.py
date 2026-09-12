@@ -325,5 +325,23 @@ def hash_dataframe(df: "pd.DataFrame") -> str:
     return hash_sha256(cabecera + valores)
 
 
+def hash_filas(df: "pd.DataFrame") -> list[str]:
+    """SHA-256 de cada fila, para la `referencia_entrada` de la bitácora.
+
+    La bitácora no guarda los datos de una vivienda: guarda el hash de la
+    fila que produjo la inferencia (R5.1). Incluye los nombres de columna,
+    igual que `hash_dataframe`: dos filas con los mismos valores bajo nombres
+    distintos no son la misma entrada.
+
+    El hash es estable dentro del entorno fijado en `requirements.txt`, que
+    es el que el manifiesto declara.
+    """
+    cabecera = "\x1f".join(map(str, df.columns))
+    return [
+        hash_sha256("\x1f".join([cabecera, *map(repr, fila)]).encode("utf-8"))
+        for fila in df.itertuples(index=False, name=None)
+    ]
+
+
 class EsquemaDatosInvalido(ValueError):
     """El dataset crudo no cumple el esquema esperado."""
