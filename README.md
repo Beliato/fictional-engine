@@ -204,7 +204,7 @@ SHA-256 de la fila de entrada — no se guardan datos crudos), `salida_modelo`,
 ├── artefactos/              salidas generadas       (ignorado por git)
 ├── plantillas/              model card, datasheet, reportes
 ├── notebooks/               solo exploración
-└── docs/                    arquitectura · marco operativo · decisiones
+└── docs/                    arquitectura · marco operativo · decisiones · CRISP-ML(Q)
 ```
 
 ## Documentación
@@ -213,3 +213,4 @@ SHA-256 de la fila de entrada — no se guardan datos crudos), `salida_modelo`,
 - [`docs/marco_operativo.md`](docs/marco_operativo.md) — los 6 pasos y la articulación normativa.
 - [`docs/decisiones.md`](docs/decisiones.md) — decisiones tomadas al montar el esqueleto, para revisar.
 - [`docs/aplicar-a-otro-dataset.md`](docs/aplicar-a-otro-dataset.md) — **el contrato de ingesta**: qué debe aportar un equipo para evaluar su propio sistema con este marco.
+- [`docs/crisp-ml-q.md`](docs/crisp-ml-q.md) — dónde se sitúa el marco frente a CRISP-ML(Q): coincidencias, divergencias declaradas y huecos abiertos.
