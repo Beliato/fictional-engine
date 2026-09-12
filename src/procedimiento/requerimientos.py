@@ -143,11 +143,39 @@ ALCANCE_PARCIAL = (
     ),
 )
 
+#: Prácticas de aseguramiento que un modelo de proceso de referencia para
+#: aprendizaje automático —CRISP-ML(Q), Studer et al. (2021)— prescribe y que
+#: este procedimiento no ejecuta. No son alcance frente a la ENIA: ninguno de
+#: los tres principios cubiertos las exige. Son límites de lo que el expediente
+#: puede sostener, y quien lo audite necesita saberlos para leerlo (D56).
+LIMITES_DEL_PROCEDIMIENTO = (
+    (
+        "Robustez",
+        "El expediente no dice nada sobre el comportamiento del sistema ante "
+        "entradas ruidosas, degradadas o falsificadas: el procedimiento no las "
+        "genera ni las mide. Un veredicto de equidad favorable no implica "
+        "estabilidad ante perturbaciones de la señal de los sensores.",
+    ),
+    (
+        "Reproducibilidad de resultado",
+        "La corrida es reproducible: semilla, versiones de biblioteca y hashes "
+        "de datos y parámetros están sellados, y repetirla produce los mismos "
+        "números. Lo que el expediente no estima es cuánto se moverían al "
+        "cambiar la semilla. Las disparidades del reporte de equidad "
+        "corresponden a una realización del entrenamiento, no a una media con "
+        "su varianza: una diferencia cercana a su umbral debe leerse con esa "
+        "cautela.",
+    ),
+)
+
 
 def alcance_declarado() -> str:
-    """Texto del alcance del marco frente a los principios de la ENIA.
+    """Texto del alcance del marco frente a los principios de la ENIA, y de
+    los límites del propio procedimiento.
 
     Un expediente que muestre solo lo que cubre induce a error sobre lo que no.
+    Son dos cosas distintas: qué principios se operacionalizan (D53) y qué
+    prácticas de aseguramiento el procedimiento no ejecuta (D56).
     """
     cubiertos = [f"{n} ({nombre})" for n, nombre, si in PRINCIPIOS_ENIA if si]
     fuera = [f"{n} ({nombre})" for n, nombre, si in PRINCIPIOS_ENIA if not si]
@@ -166,6 +194,15 @@ def alcance_declarado() -> str:
         "",
     ]
     lineas += [f"- **{nombre}.** {detalle}" for nombre, detalle in ALCANCE_PARCIAL]
+    lineas += [
+        "",
+        "Y el procedimiento tiene límites propios, que no dependen de los "
+        "principios cubiertos sino de las pruebas que ejecuta:",
+        "",
+    ]
+    lineas += [
+        f"- **{nombre}.** {detalle}" for nombre, detalle in LIMITES_DEL_PROCEDIMIENTO
+    ]
     return "\n".join(lineas)
 
 
