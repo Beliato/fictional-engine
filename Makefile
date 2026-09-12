@@ -7,11 +7,12 @@ VENV        ?= .venv
 PY          := $(VENV)/bin/python
 PIP         := $(VENV)/bin/pip
 CONFIG      ?= config.yaml
+DIAS        ?= 20
 export PYTHONHASHSEED := 42
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup lock test pipeline clean clean-datos verificar-registro
+.PHONY: help setup lock test pipeline demo clean clean-datos verificar-registro
 
 help: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -28,8 +29,22 @@ lock: ## Congela el cierre transitivo de dependencias en requirements.lock
 test: ## Ejecuta la batería de pruebas
 	$(PY) -m pytest
 
+# El orquestador devuelve 2 cuando hay hallazgos (equidad que no aprueba o
+# evidencia incompleta). Eso no es un fallo de ejecución, así que make no debe
+# tratarlo como error; 1 sí lo es y hace fallar el target.
 pipeline: ## Ejecuta el marco completo (6 pasos) usando $(CONFIG)
-	$(PY) -m src.procedimiento.orquestador --config $(CONFIG)
+	@$(PY) -m src.procedimiento.orquestador --config $(CONFIG); \
+	 codigo=$$?; \
+	 echo "==> código de salida: $$codigo (2 = hallazgos; 1 = error)"; \
+	 [ $$codigo -ne 1 ]
+
+demo: ## Corrida de demostración: los 6 pasos sobre $(DIAS) días, en minutos
+	$(PY) scripts/preparar_demo.py $(DIAS)
+	@$(PY) -m src.procedimiento.orquestador --config config.demo.yaml --id demo; \
+	 codigo=$$?; \
+	 echo "==> código de salida: $$codigo (2 = hallazgos; 1 = error)"; \
+	 echo "==> artefactos de la demo en artefactos/demo/"; \
+	 [ $$codigo -ne 1 ]
 
 verificar-registro: ## Verifica integridad y completitud de la bitácora de inferencias
 	$(PY) -m src.trazabilidad.verificacion --config $(CONFIG)
