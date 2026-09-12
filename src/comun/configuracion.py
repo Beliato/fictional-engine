@@ -206,6 +206,7 @@ class Rutas:
     reporte_explicabilidad: Path
     reporte_equidad: Path
     reporte_cumplimiento: Path
+    bitacora_ejecucion: Path
 
 
 @dataclass(frozen=True)
@@ -352,6 +353,7 @@ def _leer_rutas(crudo: dict[str, Any], raiz: Path) -> Rutas:
         "reporte_explicabilidad",
         "reporte_equidad",
         "reporte_cumplimiento",
+        "bitacora_ejecucion",
     }
     _claves(bloque, campos, "rutas")
     return Rutas(

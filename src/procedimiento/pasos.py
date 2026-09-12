@@ -42,11 +42,21 @@ from src.explicabilidad.atribucion_local import (
     explicar_lote,
     referencia_de,
 )
+from src.equidad.reporte import generar_reporte_equidad
+from src.explicabilidad.reporte import (
+    generar_reporte_explicabilidad,
+    seleccionar_ejemplos,
+)
 from src.procedimiento.evidencia import (
+    generar_bitacora_ejecucion,
     generar_datasheet,
     generar_ficha_caracterizacion,
+    generar_manifiesto,
+    generar_model_card,
     generar_protocolo_evaluacion,
+    generar_reporte_cumplimiento,
 )
+from src.procedimiento.requerimientos import verificar_cobertura_requerimientos
 from src.trazabilidad.registro import RegistroEstructurado
 from src.trazabilidad.verificacion import verificar_cobertura, verificar_registro
 
@@ -88,6 +98,9 @@ class ContextoEjecucion:
     desempeno_equidad: list[Any] = field(default_factory=list)
     informe_bitacora: Any = None
     informe_cobertura: Any = None
+    # Resultados del paso 6.
+    hash_protocolo_verificado: bool | None = None
+    cobertura_requerimientos: list[Any] = field(default_factory=list)
     artefactos: dict[str, Path] = field(default_factory=dict)
     eventos: list[dict[str, Any]] = field(default_factory=list)
 
@@ -421,11 +434,41 @@ def paso_5_generacion_artefactos(ctx: ContextoEjecucion) -> ContextoEjecucion:
     Función NIST AI RMF: GOBERNAR.
     Requerimientos: R5.2, y documentación de R3.1, R3.2, R3.3, R4.1 y R4.2.
 
-    TODO: delegar en `src.explicabilidad.reporte`, `src.equidad.reporte` y
-        `src.procedimiento.evidencia.{generar_model_card,
-        generar_reporte_cumplimiento}`.
+    El reporte de cumplimiento no se emite aquí sino en el paso 6: declara la
+    cobertura de los nueve requerimientos, que solo puede comprobarse cuando
+    ya existen todos los artefactos.
+
+    Raises:
+        PrecondicionIncumplida: si el paso 4 no dejó resultados.
     """
-    raise NotImplementedError
+    if ctx.veredicto_equidad is None or ctx.explicacion_global is None:
+        raise PrecondicionIncumplida(
+            "el paso 5 documenta los resultados del paso 4, que todavía no "
+            "se ejecutó"
+        )
+    config = ctx.config
+    y_real = dict(zip(ctx.ids_prueba, map(str, ctx.particion.y_prueba)))
+    aciertos, errores = seleccionar_ejemplos(ctx.explicaciones, y_real, config)
+
+    ctx = _registrar_artefacto(
+        ctx,
+        "paso_5_generacion_artefactos",
+        "reporte_explicabilidad",
+        generar_reporte_explicabilidad(
+            ctx.explicacion_global, aciertos, errores, y_real, ctx.id_ejecucion, config
+        ),
+    )
+    ctx = _registrar_artefacto(
+        ctx,
+        "paso_5_generacion_artefactos",
+        "reporte_equidad",
+        generar_reporte_equidad(
+            ctx.desempeno_equidad, ctx.veredicto_equidad, ctx.id_ejecucion, config
+        ),
+    )
+    return _registrar_artefacto(
+        ctx, "paso_5_generacion_artefactos", "model_card", generar_model_card(ctx)
+    )
 
 
 def paso_6_verificacion_auditabilidad(ctx: ContextoEjecucion) -> ContextoEjecucion:
@@ -448,11 +491,64 @@ def paso_6_verificacion_auditabilidad(ctx: ContextoEjecucion) -> ContextoEjecuci
     Cierra con la bitácora de ejecución y el manifiesto de hashes, que son lo
     que hace la corrida reproducible y comparable.
 
-    TODO: delegar en `src.trazabilidad.verificacion` y
-        `src.procedimiento.evidencia.{generar_bitacora_ejecucion,
-        generar_manifiesto}`.
+    El orden importa: primero se comprueba, después se documenta lo
+    comprobado y al final se sella. El manifiesto hashea los artefactos ya
+    escritos, así que cualquier cosa emitida después quedaría fuera del sello.
+
+    Raises:
+        PrecondicionIncumplida: si el paso 4 no dejó bitácora que verificar.
     """
-    raise NotImplementedError
+    config = ctx.config
+    if not ctx.ids_prueba or "bitacora" not in ctx.artefactos:
+        raise PrecondicionIncumplida(
+            "el paso 6 verifica la bitácora del paso 4, que todavía no se "
+            "ejecutó"
+        )
+    ruta_bitacora = ctx.artefactos["bitacora"]
+    ctx = replace(
+        ctx,
+        hash_protocolo_verificado=(
+            hash_archivo(config.ruta_archivo) == ctx.hash_protocolo
+        ),
+        informe_bitacora=verificar_registro(ruta_bitacora, config),
+        informe_cobertura=verificar_cobertura(
+            ruta_bitacora, set(ctx.ids_prueba), config
+        ),
+    )
+    ctx = registrar_evento(
+        ctx,
+        "paso_6_verificacion_auditabilidad",
+        protocolo_sin_alterar=ctx.hash_protocolo_verificado,
+        bitacora_valida=ctx.informe_bitacora.valido,
+        cobertura_valida=ctx.informe_cobertura.valido,
+    )
+    ctx = _registrar_artefacto(
+        ctx,
+        "paso_6_verificacion_auditabilidad",
+        "bitacora_ejecucion",
+        generar_bitacora_ejecucion(ctx),
+    )
+    ctx = replace(
+        ctx, cobertura_requerimientos=verificar_cobertura_requerimientos(ctx.artefactos)
+    )
+    ctx = _registrar_artefacto(
+        ctx,
+        "paso_6_verificacion_auditabilidad",
+        "reporte_cumplimiento",
+        generar_reporte_cumplimiento(ctx),
+    )
+    cubiertos = sum(1 for fila in ctx.cobertura_requerimientos if fila.cubierto)
+    ctx = registrar_evento(
+        ctx,
+        "paso_6_verificacion_auditabilidad",
+        requerimientos_cubiertos=f"{cubiertos}/{len(ctx.cobertura_requerimientos)}",
+    )
+    return _registrar_artefacto(
+        ctx,
+        "paso_6_verificacion_auditabilidad",
+        "manifiesto",
+        generar_manifiesto(ctx),
+    )
 
 
 class PrecondicionIncumplida(RuntimeError):

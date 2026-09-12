@@ -1,12 +1,14 @@
 # Model Card — {{modelo_tipo}} v{{modelo_version}}
 
-> Generada automáticamente por el paso 6 del marco. No editar a mano:
-> los marcadores `{{...}}` los rellena `src.procedimiento.evidencia.generar_model_card`.
+> Producto del **paso 5** del procedimiento (Tabla 9).
+> Requerimientos **R3.3** (información comprensible) y **R5.2**
+> (documentación estandarizada del modelo).
+> La genera `evidencia.generar_model_card`: no editar a mano.
 
 ## 1. Detalles del modelo
 - **Tipo:** {{modelo_tipo}}
 - **Versión:** {{modelo_version}}
-- **Fecha de entrenamiento (UTC):** {{fecha_entrenamiento}}
+- **Fecha de sellado (UTC):** {{fecha_sellado}}
 - **Hiperparámetros:** {{hiperparametros}}
 - **Semilla:** {{semilla}}
 - **Hash de parámetros:** {{hash_parametros}}
@@ -22,7 +24,7 @@
 
 ## 3. Datos
 - **Fuente:** {{datos_fuente}}
-- **Partición:** train/test {{test_size}} (estratificada: {{estratificar}})
+- **Partición:** {{particion}}
 - Ver `datasheet.md` para procedencia y composición.
 
 ## 4. Desempeño global

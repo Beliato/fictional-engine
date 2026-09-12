@@ -661,3 +661,54 @@ panel de especialistas (Capítulo 6).
 trabajo tenía cambios sin confirmar. Un commit con el árbol sucio no
 identifica el código que corrió; omitir ese detalle haría el manifiesto más
 prolijo y menos cierto.
+
+## D48 — Los nueve requerimientos viven en el código; el expediente se sella al final
+El criterio de éxito del piloto es que la corrida genere los artefactos de
+los **nueve requerimientos** y que permitan reconstruir el comportamiento del
+sistema (Tabla 10). Para poder comprobarlo hacía falta una correspondencia
+explícita entre cada requerimiento y su evidencia, que hasta ahora no existía
+en ninguna parte: `config.yaml` solo declaraba la articulación normativa por
+principio.
+
+Esa correspondencia vive en `src/procedimiento/requerimientos.py`, no en la
+configuración. Los nueve requerimientos son la definición del marco —el
+producto de la tesis—, no parámetros del despliegue, igual que
+`METRICAS_EQUIDAD`. Los enunciados son los de la Tabla 5, textuales.
+
+Un artefacto cuenta como evidencia solo si su ruta está registrada **y** el
+archivo existe. Una ruta anotada sin archivo detrás documentaría una
+evidencia que nadie puede abrir.
+
+**R3.3 tiene dos artefactos.** La Tabla 5 lo asigna al model card ("secciones
+de uso previsto, desempeño y limitaciones en lenguaje llano"), y el marco
+produce además los enunciados en lenguaje llano del reporte de
+explicabilidad. Se cuentan los dos.
+
+**El reporte de cumplimiento se emite en el paso 6, no en el 5.** Declara la
+cobertura de los nueve requerimientos, que solo puede comprobarse cuando ya
+existen todos los artefactos. La Tabla 9 asigna al paso 5 el reporte de
+explicabilidad, el de equidad y el model card, que es lo que ese paso genera.
+
+**Orden dentro del paso 6:** primero comprobar (hash del protocolo, bitácora,
+cobertura), después documentar lo comprobado, y sellar al final. El
+manifiesto hashea los artefactos ya escritos, así que cualquier cosa emitida
+después quedaría fuera del sello.
+
+**Dos veredictos distintos.** El reporte de cumplimiento separa "falta
+evidencia" de "la evidencia muestra un incumplimiento":
+- **EVIDENCIA INCOMPLETA:** algún requerimiento sin artefacto.
+- **NO CUMPLE:** evidencia completa, pero la equidad no aprueba o la
+  trazabilidad tiene hallazgos.
+- **CUMPLE:** evidencia completa, equidad aprobada y bitácora verificada con
+  el protocolo intacto.
+
+**Código de salida.** 0 solo si la equidad aprueba y los nueve requerimientos
+están cubiertos; 2 para cualquier hallazgo, incluida la evidencia incompleta;
+1 solo para errores de ejecución. Un hallazgo no es una excepción (D9).
+
+**Qué se puede comparar entre corridas.** Los artefactos que llevan la
+identidad de la corrida —ficha, protocolo, datasheet, reportes, bitácora,
+manifiesto— cambian con el identificador y la marca de tiempo. Lo que debe
+repetirse es el contenido: con el mismo identificador, dos corridas producen
+los mismos hashes de datos, de modelo y de los artefactos técnicos. La prueba
+de integración lo verifica así.

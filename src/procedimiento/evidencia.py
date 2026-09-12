@@ -7,8 +7,13 @@ el paso del procedimiento (Tabla 9) que lo tiene como producto:
     paso 1 -> generar_ficha_caracterizacion
     paso 2 -> generar_datasheet
     paso 3 -> generar_protocolo_evaluacion
-    paso 5 -> generar_model_card, generar_reporte_cumplimiento
-    paso 6 -> generar_bitacora_ejecucion, generar_manifiesto
+    paso 5 -> generar_model_card
+    paso 6 -> generar_bitacora_ejecucion, generar_reporte_cumplimiento,
+              generar_manifiesto
+
+El reporte de cumplimiento se emite en el paso 6 y no en el 5 porque declara
+la cobertura de los nueve requerimientos, que solo se puede comprobar cuando
+ya existen todos los artefactos.
 
 Reparto de responsabilidades: lo que el marco puede derivar de los datos o de
 la configuración lo calcula aquí; lo que afirma algo sobre el sistema o el
@@ -22,6 +27,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from src.comun.utilidades import (
+    ahora_utc_iso,
     asegurar_directorio,
     rellenar_plantilla,
 )
@@ -308,32 +314,285 @@ def _metricas_desempeno(config: "Configuracion") -> str:
 
 
 def generar_model_card(ctx: "ContextoEjecucion") -> Path:
-    """Rellena `plantillas/model_card.md` con los datos de la ejecución.
+    """Rellena `plantillas/model_card.md` (producto del paso 5).
 
-    TODO: sustituir marcadores de la plantilla (modelo, datos, métricas,
-        limitaciones, veredicto de equidad) y escribir en
-        `config.rutas.model_card`.
+    Documenta el modelo de forma estandarizada: propósito, datos, desempeño
+    global y desagregado, equidad, explicabilidad, trazabilidad y
+    limitaciones (R5.2), en un formato legible por destinatarios no técnicos
+    (R3.3).
+
+    Raises:
+        EvidenciaIncompleta: si falta algún resultado del paso 4.
     """
-    raise NotImplementedError
+    from src.comun.semillas import instantanea_entorno
+    from src.equidad.reporte import (
+        ESTADOS,
+        lista_limitaciones,
+        tabla_desempeno,
+        tabla_resultados,
+    )
+    from src.explicabilidad.lenguaje import etiqueta_caracteristica
+
+    config = ctx.config
+    modelo = _exigir(ctx.modelo, "el modelo sellado")
+    veredicto = _exigir(ctx.veredicto_equidad, "el veredicto de equidad")
+    global_ = _exigir(ctx.explicacion_global, "la importancia global")
+    informe = _exigir(ctx.informe_bitacora, "la verificación de la bitácora")
+    evaluadas, posibles = veredicto.cobertura
+    articulacion = config.articulacion_normativa
+
+    valores = {
+        "modelo_tipo": config.modelo.tipo,
+        "modelo_version": modelo.version,
+        "fecha_sellado": ctx.marca_inicio,
+        "hiperparametros": ", ".join(
+            f"`{clave}={valor}`"
+            for clave, valor in sorted(config.modelo.hiperparametros.items())
+        ),
+        "semilla": str(config.semilla),
+        "hash_parametros": modelo.hash_parametros,
+        "hash_datos_entrenamiento": modelo.hash_datos_entrenamiento,
+        "version_marco": config.version_marco,
+        "responsable": config.trazabilidad.responsable_por_defecto,
+        "usuarios_previstos": config.sistema.poblacion_destinataria,
+        "usos_fuera_alcance": config.datos.documentacion.usos_no_recomendados,
+        "datos_fuente": config.datos.fuente,
+        "particion": (
+            f"`{config.datos.particion.estrategia}`, test_size "
+            f"{formatear_decimal(config.datos.particion.test_size, 2)}"
+        ),
+        "tabla_desempeno_global": _tabla_desempeno_global(ctx),
+        "tabla_desempeno_desagregado": tabla_desempeno(ctx.desempeno_equidad),
+        "tabla_metricas_equidad": tabla_resultados(
+            veredicto.metricas_incumplidas(),
+            "_Ninguna combinación evaluable excede su umbral._",
+        ),
+        "veredicto_equidad": (
+            f"{ESTADOS[veredicto.estado]} — {evaluadas} de {posibles} "
+            "combinaciones evaluadas"
+        ),
+        "explainer": (
+            f"{config.explicabilidad.explainer}, perturbación "
+            f"`{config.explicabilidad.perturbacion}`"
+        ),
+        "importancia_global_top": ", ".join(
+            f"{etiqueta_caracteristica(nombre)} "
+            f"({formatear_decimal(global_.importancia_media_abs[nombre], 3)})"
+            for nombre in global_.top(3)
+        ),
+        "rutas_figuras_explicabilidad": ", ".join(
+            f"`{_relativa(ruta, config)}`"
+            for ruta in (global_.ruta_figura_resumen, *global_.rutas_dependencias.values())
+        ),
+        "ruta_bitacora": f"`{_relativa(ctx.artefactos['bitacora'], config)}`",
+        "n_inferencias": formatear_miles(informe.n_registros),
+        "estado_verificacion_bitacora": "VÁLIDA" if informe.valido else "NO VÁLIDA",
+        "limitaciones": lista_limitaciones(config),
+        "ruta_manifiesto": f"`{_relativa(config.rutas.manifiesto, config)}`",
+        "instantanea_entorno": _tabla_entorno(instantanea_entorno()),
+    }
+    for principio, prefijos in (
+        ("explicabilidad", "explicabilidad"),
+        ("equidad", "equidad"),
+        ("trazabilidad", "trazabilidad"),
+    ):
+        mapeo = articulacion[principio]
+        valores[f"enia_{prefijos}"] = mapeo["enia_cr"]
+        valores[f"aiact_{prefijos}"] = mapeo["ai_act_eu"]
+        valores[f"nist_{prefijos}"] = mapeo["nist_ai_rmf"]
+
+    return _escribir(
+        Path(config.rutas.model_card),
+        rellenar_plantilla(_plantilla(ctx, "model_card.md"), valores),
+    )
+
+
+def _relativa(ruta: Path, config: "Configuracion") -> str:
+    """Ruta vista desde la raíz del repositorio, en POSIX."""
+    import os
+
+    return Path(
+        os.path.relpath(Path(ruta), Path(config.rutas.artefactos).parent)
+    ).as_posix()
+
+
+def _tabla_entorno(entorno: dict) -> str:
+    filas = ["| Componente | Valor |", "|---|---|"]
+    filas += [f"| {clave} | `{valor}` |" for clave, valor in entorno.items()]
+    return "\n".join(filas)
+
+
+def _tabla_desempeno_global(ctx: "ContextoEjecucion") -> str:
+    """Desempeño del modelo sobre todo el conjunto de evaluación.
+
+    Se mide, no se persigue: el modelo es sujeto de prueba (Tabla 10).
+    """
+    from sklearn.metrics import accuracy_score, f1_score
+
+    particion = _exigir(ctx.particion, "la partición")
+    predicciones = _exigir(ctx.predicciones, "las predicciones")
+    reales = particion.y_prueba.astype(str)
+    predichas = predicciones.astype(str)
+    return "\n".join(
+        [
+            "| Métrica | Valor |",
+            "|---|---:|",
+            f"| Ventanas de evaluación | {formatear_miles(len(reales))} |",
+            f"| Exactitud | {formatear_decimal(accuracy_score(reales, predichas))} |",
+            "| F1 macro | "
+            f"{formatear_decimal(f1_score(reales, predichas, average='macro', zero_division=0.0))} |",
+        ]
+    )
 
 
 def generar_reporte_cumplimiento(ctx: "ContextoEjecucion") -> Path:
-    """Genera el reporte de cumplimiento consolidado (3 principios + mapeo
-    normativo ENIA-CR / AI Act EU / NIST AI RMF) desde
-    `plantillas/reporte_cumplimiento.md`.
+    """Genera el reporte de cumplimiento consolidado (producto del paso 6).
 
-    TODO: agregar los reportes por principio y el veredicto global.
+    Reúne el estado de los tres principios, la cobertura de los nueve
+    requerimientos y la articulación normativa. El veredicto global distingue
+    dos cosas que no son lo mismo: que falte evidencia y que la evidencia
+    muestre un incumplimiento.
+
+    Raises:
+        EvidenciaIncompleta: si falta algún resultado de los pasos anteriores.
     """
-    raise NotImplementedError
+    from src.comun.semillas import instantanea_entorno
+    from src.equidad.reporte import ESTADOS, tabla_protocolo, tabla_resultados
+
+    config = ctx.config
+    modelo = _exigir(ctx.modelo, "el modelo sellado")
+    veredicto = _exigir(ctx.veredicto_equidad, "el veredicto de equidad")
+    informe = _exigir(ctx.informe_bitacora, "la verificación de la bitácora")
+    cobertura_bitacora = _exigir(ctx.informe_cobertura, "la cobertura de la bitácora")
+    cobertura = _exigir(
+        ctx.cobertura_requerimientos, "la cobertura de los requerimientos"
+    )
+    completa = all(fila.cubierto for fila in cobertura)
+    trazable = (
+        informe.valido and cobertura_bitacora.valido and bool(ctx.hash_protocolo_verificado)
+    )
+    if not completa:
+        global_ = "EVIDENCIA INCOMPLETA"
+    elif veredicto.aprueba and trazable:
+        global_ = "CUMPLE"
+    else:
+        global_ = "NO CUMPLE"
+
+    incumplidas = veredicto.metricas_incumplidas()
+    valores = {
+        "id_ejecucion": ctx.id_ejecucion,
+        "fecha_ejecucion": ctx.marca_inicio,
+        "version_marco": config.version_marco,
+        "modelo_tipo": config.modelo.tipo,
+        "modelo_version": modelo.version,
+        "hash_parametros": modelo.hash_parametros[:12],
+        "ruta_manifiesto": f"`{_relativa(config.rutas.manifiesto, config)}`",
+        "veredicto_global": global_,
+        "estado_explicabilidad": "documentada",
+        "ruta_reporte_explicabilidad": f"`{_relativa(config.rutas.reporte_explicabilidad, config)}`",
+        "estado_equidad": ESTADOS[veredicto.estado],
+        "ruta_reporte_equidad": f"`{_relativa(config.rutas.reporte_equidad, config)}`",
+        "estado_trazabilidad": "verificada" if trazable else "con hallazgos",
+        "ruta_bitacora": f"`{_relativa(ctx.artefactos['bitacora'], config)}`",
+        "resumen_explicabilidad": _resumen_explicabilidad(ctx),
+        "subgrupos": ", ".join(s.nombre for s in config.equidad.subgrupos),
+        "tabla_umbrales": tabla_protocolo(config),
+        "tabla_metricas_equidad": tabla_resultados(
+            incumplidas, "_Ninguna combinación evaluable excede su umbral._"
+        ),
+        "metricas_incumplidas": (
+            ", ".join(
+                f"{r.subgrupo}/{r.actividad}/{r.metrica}" for r in incumplidas
+            )
+            or "ninguna"
+        ),
+        "n_inferencias": formatear_miles(informe.n_registros),
+        "estado_verificacion_bitacora": "VÁLIDA" if informe.valido else "NO VÁLIDA",
+        "estado_cobertura": "COMPLETA" if cobertura_bitacora.valido else "INCOMPLETA",
+        "tabla_requerimientos": _tabla_requerimientos(cobertura),
+        "tabla_articulacion_normativa": _tabla_articulacion(config),
+        "git_commit": instantanea_entorno()["git_commit"],
+    }
+    return _escribir(
+        Path(config.rutas.reporte_cumplimiento),
+        rellenar_plantilla(_plantilla(ctx, "reporte_cumplimiento.md"), valores),
+    )
+
+
+def _resumen_explicabilidad(ctx: "ContextoEjecucion") -> str:
+    from src.explicabilidad.lenguaje import etiqueta_caracteristica
+
+    global_ = _exigir(ctx.explicacion_global, "la importancia global")
+    destacadas = ", ".join(
+        etiqueta_caracteristica(nombre) for nombre in global_.top(3)
+    )
+    return (
+        f"Se explicaron {formatear_miles(global_.n_explicaciones)} inferencias, "
+        "todas las del conjunto de evaluación, con atribución local por evento "
+        f"(R3.1) y agregación global (R3.2). Características más influyentes: "
+        f"{destacadas}. El reporte incluye los enunciados en lenguaje llano "
+        "exigidos por el R3.3."
+    )
+
+
+def _tabla_requerimientos(cobertura: list) -> str:
+    filas = [
+        "| Código | Principio | Requerimiento | Evidencia | Estado |",
+        "|---|---|---|---|---|",
+    ]
+    for fila in cobertura:
+        requerimiento = fila.requerimiento
+        evidencia = ", ".join(f"`{clave}`" for clave in fila.presentes) or "—"
+        estado = "cubierto" if fila.cubierto else "FALTA: " + ", ".join(fila.faltantes)
+        filas.append(
+            f"| {requerimiento.codigo} | {requerimiento.principio} | "
+            f"{requerimiento.enunciado} | {evidencia} | {estado} |"
+        )
+    return "\n".join(filas)
+
+
+def _tabla_articulacion(config: "Configuracion") -> str:
+    filas = ["| Principio | ENIA Costa Rica | AI Act EU | NIST AI RMF |", "|---|---|---|---|"]
+    for principio, mapeo in config.articulacion_normativa.items():
+        filas.append(
+            f"| {principio.capitalize()} | {mapeo['enia_cr']} | "
+            f"{mapeo['ai_act_eu']} | {mapeo['nist_ai_rmf']} |"
+        )
+    return "\n".join(filas)
 
 
 def generar_bitacora_ejecucion(ctx: "ContextoEjecucion") -> Path:
-    """Escribe la bitácora de ejecución (qué paso corrió, cuándo, con qué
-    entradas/salidas y hashes) como Markdown + JSON.
+    """Escribe la bitácora de ejecución: qué paso corrió, cuándo y con qué
+    entradas y salidas (producto del paso 6).
 
-    TODO: serializar `ctx.eventos`.
+    Deja el Markdown legible y, al lado, el mismo contenido en JSON para que
+    otra herramienta pueda consumirlo sin volver a parsear una tabla.
+
+    Returns:
+        Ruta del Markdown; el JSON queda junto a él con la misma raíz.
     """
-    raise NotImplementedError
+    from src.comun.utilidades import escribir_json
+
+    config = ctx.config
+    destino = Path(config.rutas.bitacora_ejecucion)
+    lineas = [
+        f"# Bitácora de ejecución — {ctx.id_ejecucion}",
+        "",
+        "> Producto del **paso 6** del procedimiento (Tabla 9).",
+        f"> Inicio de la corrida: {ctx.marca_inicio}",
+        "",
+    ]
+    for evento in ctx.eventos:
+        lineas.append(f"## {evento['paso']} — {evento['marca_temporal']}")
+        lineas.append("")
+        lineas.append("| Campo | Valor |")
+        lineas.append("|---|---|")
+        for clave, valor in evento.items():
+            if clave not in ("paso", "marca_temporal"):
+                lineas.append(f"| {clave} | `{valor}` |")
+        lineas.append("")
+    escribir_json(destino.with_suffix(".json"), ctx.eventos)
+    return _escribir(destino, "\n".join(lineas))
 
 
 def generar_manifiesto(ctx: "ContextoEjecucion") -> Path:
@@ -348,10 +607,92 @@ def generar_manifiesto(ctx: "ContextoEjecucion") -> Path:
 
     Es la pieza que hace la ejecución "auditable" y reproducible.
 
-    TODO: recopilar todo lo anterior y escribir con
-        `src.comun.utilidades.escribir_json`.
+    Se emite al final del paso 6: hashea los artefactos ya escritos, así que
+    cualquier artefacto posterior quedaría fuera del sello.
     """
-    raise NotImplementedError
+    from src.comun.semillas import instantanea_entorno
+    from src.comun.utilidades import escribir_json, hash_archivo
+
+    config = ctx.config
+    veredicto = _exigir(ctx.veredicto_equidad, "el veredicto de equidad")
+    informe = _exigir(ctx.informe_bitacora, "la verificación de la bitácora")
+    cobertura_bitacora = _exigir(ctx.informe_cobertura, "la cobertura de la bitácora")
+    cobertura = _exigir(
+        ctx.cobertura_requerimientos, "la cobertura de los requerimientos"
+    )
+    modelo = _exigir(ctx.modelo, "el modelo sellado")
+    evaluadas, posibles = veredicto.cobertura
+
+    destino = Path(config.rutas.manifiesto)
+    escribir_json(
+        destino,
+        {
+            "id_ejecucion": ctx.id_ejecucion,
+            "marca_inicio": ctx.marca_inicio,
+            "marca_manifiesto": ahora_utc_iso(),
+            "entorno": instantanea_entorno(),
+            "protocolo": {
+                "archivo": _relativa(config.ruta_archivo, config),
+                "hash_sellado": ctx.hash_protocolo,
+                "hash_verificado_en_paso_6": ctx.hash_protocolo_verificado,
+            },
+            "configuracion": config.crudo,
+            "datos": {
+                "eventos_crudos": ctx.n_eventos_crudos,
+                "ventanas": len(ctx.caracteristicas)
+                if ctx.caracteristicas is not None
+                else None,
+                "hash_crudos": ctx.hash_datos_crudos,
+                "hash_procesados": ctx.hash_datos,
+            },
+            "modelo": {
+                "tipo": config.modelo.tipo,
+                "version": modelo.version,
+                "hash_parametros": modelo.hash_parametros,
+                "hash_datos_entrenamiento": modelo.hash_datos_entrenamiento,
+                "version_sklearn": modelo.version_sklearn,
+            },
+            "equidad": {
+                "estado": veredicto.estado,
+                "combinaciones_evaluadas": evaluadas,
+                "combinaciones_posibles": posibles,
+                "incumplidas": [
+                    {
+                        "subgrupo": r.subgrupo,
+                        "actividad": r.actividad,
+                        "metrica": r.metrica,
+                        "valor": r.valor_observado,
+                        "umbral": r.umbral,
+                    }
+                    for r in veredicto.metricas_incumplidas()
+                ],
+            },
+            "bitacora": {
+                "registros": informe.n_registros,
+                "valida": informe.valido,
+                "cobertura_valida": cobertura_bitacora.valido,
+                "problemas": [*informe.problemas, *cobertura_bitacora.problemas],
+            },
+            "requerimientos": {
+                fila.requerimiento.codigo: {
+                    "cubierto": fila.cubierto,
+                    "evidencia": list(fila.presentes),
+                    "faltantes": list(fila.faltantes),
+                }
+                for fila in cobertura
+            },
+            "artefactos": {
+                nombre: {
+                    "ruta": _relativa(ruta, config),
+                    "sha256": hash_archivo(ruta),
+                }
+                for nombre, ruta in sorted(ctx.artefactos.items())
+                if Path(ruta).is_file()
+            },
+            "eventos": ctx.eventos,
+        },
+    )
+    return destino
 
 
 class EvidenciaIncompleta(RuntimeError):

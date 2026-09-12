@@ -90,18 +90,18 @@ def generar_reporte_equidad(
         "id_ejecucion": id_ejecucion,
         "veredicto": ESTADOS[veredicto.estado],
         "resumen_veredicto": _resumen(veredicto),
-        "tabla_incumplidas": _tabla_resultados(
+        "tabla_incumplidas": tabla_resultados(
             veredicto.metricas_incumplidas(), "_Ninguna._"
         ),
         "tabla_protocolo": tabla_protocolo(config),
         "soporte_minimo": formatear_miles(config.equidad.soporte_minimo),
         "lista_subgrupos": _lista_subgrupos(config),
-        "tabla_desempeno_desagregado": _tabla_desempeno(desempeno),
-        "tabla_metricas_veredicto": _tabla_resultados(
+        "tabla_desempeno_desagregado": tabla_desempeno(desempeno),
+        "tabla_metricas_veredicto": tabla_resultados(
             evaluables, "_Ninguna combinación fue evaluable._"
         ),
         "tabla_no_evaluables": _tabla_no_evaluables(veredicto.no_evaluables()),
-        "tabla_descriptivas": _tabla_resultados(
+        "tabla_descriptivas": tabla_resultados(
             veredicto.descriptivas(), "_No se declararon métricas descriptivas._"
         ),
         "notas_interpretacion": _notas(config),
@@ -187,7 +187,7 @@ def _lista_subgrupos(config: "Configuracion") -> str:
     return "\n".join(lineas)
 
 
-def _tabla_desempeno(filas: "list[DesempenoSubgrupo]") -> str:
+def tabla_desempeno(filas: "list[DesempenoSubgrupo]") -> str:
     if not filas:
         return "_Sin subgrupos que desagregar._"
     lineas = [
@@ -219,7 +219,7 @@ def _detalle_tasas(resultado: "ResultadoMetrica") -> str:
     )
 
 
-def _tabla_resultados(resultados: "list[ResultadoMetrica]", vacia: str) -> str:
+def tabla_resultados(resultados: "list[ResultadoMetrica]", vacia: str) -> str:
     if not resultados:
         return vacia
     filas = [

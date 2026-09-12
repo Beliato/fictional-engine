@@ -34,6 +34,14 @@
 - Verificación de integridad: {{estado_verificacion_bitacora}}
 - Cobertura (1 registro por inferencia del set de prueba): {{estado_cobertura}}
 
+## Cobertura de los nueve requerimientos
+
+> Criterio de éxito del piloto: que la ejecución genere los artefactos
+> asociados a los nueve requerimientos y que estos permitan reconstruir el
+> comportamiento del sistema.
+
+{{tabla_requerimientos}}
+
 ## Articulación normativa
 {{tabla_articulacion_normativa}}
 
@@ -41,7 +49,7 @@
 ```
 git checkout {{git_commit}}
 make setup
-# colocar datos/crudos/casas.csv (ver datasheet.md)
+# colocar el crudo en datos/crudos/ (ver datasheet.md)
 make pipeline
 ```
 Los hashes del manifiesto deben coincidir bit a bit.

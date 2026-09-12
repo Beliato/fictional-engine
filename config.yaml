@@ -88,6 +88,8 @@ rutas:
   reporte_explicabilidad: artefactos/reporte_explicabilidad.md
   reporte_equidad: artefactos/reporte_equidad.md
   reporte_cumplimiento: artefactos/reporte_cumplimiento.md
+  # Qué paso corrió, cuándo y con qué entradas y salidas (paso 6).
+  bitacora_ejecucion: artefactos/bitacora_ejecucion.md
 
 # --- Dataset ----------------------------------------------------------------
 datos:
