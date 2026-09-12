@@ -47,7 +47,11 @@ def _casa(dias: int = 5, eventos_por_dia: int = 40) -> str:
     return "\n".join(lineas) + "\n"
 
 
-def _config(tmp_path, hogares: tuple[str, ...] = ("casa_a", "casa_b")):
+def _config(
+    tmp_path,
+    hogares: tuple[str, ...] = ("casa_a", "casa_b"),
+    ajustes_actividades: dict | None = None,
+):
     """Config derivada de la del repo que apunta a un directorio de hogares."""
     crudos = tmp_path / "datos" / "crudos" / "hogares"
     crudos.mkdir(parents=True)
@@ -67,6 +71,7 @@ def _config(tmp_path, hogares: tuple[str, ...] = ("casa_a", "casa_b")):
         "OutsideDoor_Puerta": "OutsideDoor",
     }
     crudo["datos"]["actividades"]["excluidas"] = []
+    crudo["datos"]["actividades"].update(ajustes_actividades or {})
     crudo["datos"]["ventana"]["n_eventos"] = 10
     crudo["equidad"]["subgrupos"].append(
         {
@@ -212,3 +217,43 @@ def test_el_formato_csv_rechaza_un_crudo_de_otro_formato(tmp_path, crudo_sinteti
 
     with pytest.raises((FormatoNoReconocido, ContratoIncumplido)):
         leer_eventos(config)
+
+
+# --- Mapeo de actividades y protocolo del piloto ------------------------------
+
+
+def test_el_mapeo_agrupa_variantes_antes_de_excluir(tmp_path):
+    """`excluidas` se declara sobre las clases que el modelo verá, no sobre
+    las etiquetas originales."""
+    config = _config(tmp_path, ajustes_actividades={"mapeo": {"Sleep": "Descanso"}})
+    caracteristicas = D.construir_caracteristicas(leer_eventos(config), config)
+    clases = set(caracteristicas[config.datos.columna_objetivo])
+
+    assert "Descanso" in clases and "Sleep" not in clases
+
+    config = _config(
+        tmp_path / "excluyendo",
+        ajustes_actividades={"mapeo": {"Sleep": "Descanso"}, "excluidas": ["Descanso"]},
+    )
+    caracteristicas = D.construir_caracteristicas(leer_eventos(config), config)
+    clases = set(caracteristicas[config.datos.columna_objetivo])
+
+    assert "Descanso" not in clases and "Sleep" not in clases
+
+
+def test_el_protocolo_del_piloto_multihogar():
+    """Protocolo declarado para el piloto de nueve viviendas. Cambiarlo obliga
+    a tocar también esta prueba: deja un segundo rastro en git."""
+    config = cargar_configuracion(RAIZ / "config.hogares.yaml")
+
+    assert config.datos.formato == "casas_csv"
+    assert [s.nombre for s in config.equidad.subgrupos][0] == "hogar"
+    assert len(config.equidad.subgrupos[0].categorias) == 9
+    assert config.equidad.soporte_minimo == 30
+    assert set(config.equidad.umbrales) == {
+        "true_positive_rate_difference",
+        "false_positive_rate_difference",
+    }
+    # El expediente de este piloto no puede pisar el de Aruba (D49).
+    assert config.rutas.artefactos.name == "hogares"
+    assert config.datos.actividades.mapeo

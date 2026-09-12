@@ -1,0 +1,319 @@
+# =============================================================================
+# Piloto multi-hogar: nueve viviendas de adultos mayores del release oficial
+# de CASAS (DOI 10.5281/zenodo.15708568).
+#
+# REGLA DE ORO (reproducibilidad y no p-hacking):
+#   El protocolo de equidad (bloque `equidad`: métricas, umbrales y soporte
+#   mínimo) se declara AQUÍ, ANTES de ejecutar el pipeline. NUNCA se ajusta
+#   después de observar los resultados. Todo cambio debe quedar en el
+#   historial de git con su justificación.
+#
+# La diferencia con `config.yaml` no es de método sino de datos: aquí cada
+# hogar es una persona distinta, así que los subgrupos de equidad pasan a ser
+# poblacionales y no solo contextuales (D23, D50).
+# =============================================================================
+
+version_marco: "0.1.0"
+
+# --- Sistema evaluado --------------------------------------------------------
+sistema:
+  nombre: >-
+    Clasificador de actividades de la vida diaria a partir de sensores PIR,
+    evaluado como servicio de monitoreo sobre nueve viviendas
+  finalidad: >-
+    Inferir qué actividad de la vida diaria realiza cada persona adulta mayor
+    monitoreada, a partir de eventos de sensores ambientales pasivos, para que
+    un servicio de monitoreo domiciliario pueda acompañar su permanencia
+    segura y autónoma en el hogar. El sistema no diagnostica ni decide
+    intervenciones clínicas.
+  poblacion_destinataria: >-
+    Personas adultas mayores que viven de forma independiente en una comunidad
+    de retiro, y las personas cuidadoras que reciben la información. Son nueve
+    viviendas distintas, así que el sistema atiende a nueve personas o
+    unidades domésticas con rutinas e instalaciones diferentes. La edad define
+    a la población: la ENIA reconoce a las personas adultas mayores como grupo
+    prioritario (MICITT, 2024) y el AI Act EU agrava las exigencias cuando un
+    sistema se dirige a un grupo vulnerable por su edad.
+  tarea_aprendizaje: >-
+    Clasificación multiclase de ventanas de eventos de sensores en actividades
+    de la vida diaria, sobre datos tabulares. Un único modelo para todas las
+    viviendas, como lo tendría un servicio que atiende a varias personas.
+  contexto_sensores: >-
+    Sensores de infrarrojo pasivo en el techo y sensores magnéticos de puerta,
+    nombrados por la habitación donde están instalados. No hay cámara ni
+    micrófono: la literatura del dominio documenta esta configuración como la
+    menos intrusiva para entornos domiciliarios (Kim et al., 2022). Las
+    viviendas no tienen las mismas habitaciones, así que cada una activa solo
+    el subconjunto de zonas que posee.
+  contexto_despliegue: >-
+    Piloto de investigación sobre datos públicos ya recolectados. No hay
+    despliegue en viviendas reales ni personas participantes: los resultados
+    documentan la aplicabilidad técnica del marco, no la pertinencia clínica
+    del modelo.
+  personas_afectadas: >-
+    Las personas monitoreadas y quienes las cuidan. En un despliegue real,
+    ambas deben poder pedir la explicación de una inferencia concreta —el
+    marco la produce por evento— y objetarla ante la organización declarada
+    como responsable en la bitácora. En este piloto esa vía no existe porque
+    no hay personas monitoreadas: los datos son públicos e históricos.
+  delimitacion: >-
+    El objeto de evaluación es el marco operativo y su capacidad de generar
+    evidencia verificable; el modelo actúa como sujeto de prueba, no como
+    objeto de optimización (Tabla 10). Quedan fuera de alcance la pertinencia
+    clínica de las predicciones y la generalización del instrumento a todo
+    contexto de despliegue.
+
+# --- Reproducibilidad ---------------------------------------------------------
+semilla: 42
+determinismo:
+  pythonhashseed: 42
+  n_jobs: 1
+
+# --- Rutas (relativas a la raíz del repositorio) ----------------------------
+# El expediente de este piloto vive aparte del de Aruba: dos corridas no
+# pueden pisarse los artefactos (D49).
+rutas:
+  datos_crudos: datos/crudos
+  datos_intermedios: datos/intermedios
+  artefactos: artefactos/hogares
+  plantillas: plantillas
+  registro_inferencias: artefactos/hogares/bitacora/inferencias.jsonl
+  manifiesto: artefactos/hogares/manifiesto.json
+  ficha_caracterizacion: artefactos/hogares/ficha_caracterizacion.md
+  protocolo_evaluacion: artefactos/hogares/protocolo_evaluacion.md
+  datasheet: artefactos/hogares/datasheet.md
+  model_card: artefactos/hogares/model_card.md
+  reporte_explicabilidad: artefactos/hogares/reporte_explicabilidad.md
+  reporte_equidad: artefactos/hogares/reporte_equidad.md
+  reporte_cumplimiento: artefactos/hogares/reporte_cumplimiento.md
+  bitacora_ejecucion: artefactos/hogares/bitacora_ejecucion.md
+
+# --- Dataset ----------------------------------------------------------------
+datos:
+  fuente: >-
+    CASAS smart home dataset, serie `hh` (adultos mayores viviendo de forma
+    independiente en una comunidad de retiro). Nueve viviendas, hh101 a hh109,
+    truncadas a sus primeros 30 días. Depósito oficial en Zenodo,
+    DOI 10.5281/zenodo.15708568, bajo licencia CC BY 4.0. Selección y truncado
+    reproducibles con `scripts/preparar_hogares.py`.
+  archivo_crudo: datos/crudos/hogares
+  # Un archivo por vivienda; el nombre del archivo pasa a la columna `hogar`.
+  formato: casas_csv
+  columna_objetivo: actividad
+
+  # Los sensores ya vienen nombrados por habitación. Los `_Puerta` los produce
+  # el lector al desdoblar un sensor que reporta movimiento y puerta con el
+  # mismo nombre (D50).
+  columnas_sensor_pir: [Bathroom, Bedroom, DiningRoom, Kitchen, LivingRoom, LoungeChair, OutsideDoor, WorkArea]
+  sensores_puerta: [Bathroom_Puerta, Kitchen_Puerta, OutsideDoor_Puerta]
+  sensores_temperatura: []
+
+  # El mapeo es la identidad: el dataset ya nombra los sensores por zona, así
+  # que no hay nada que derivar. Las puertas se cuentan en la zona donde están.
+  zonas:
+    Bathroom: Bathroom
+    Bathroom_Puerta: Bathroom
+    Bedroom: Bedroom
+    DiningRoom: DiningRoom
+    Kitchen: Kitchen
+    Kitchen_Puerta: Kitchen
+    LivingRoom: LivingRoom
+    LoungeChair: LoungeChair
+    OutsideDoor: OutsideDoor
+    OutsideDoor_Puerta: OutsideDoor
+    WorkArea: WorkArea
+
+  actividades:
+    etiqueta_sin_actividad: Otro
+    # `Nap` tiene 6 eventos y `Exercise` 9 en todo el conjunto. Con esa
+    # cantidad no se puede partir ni evaluar de forma sensata.
+    excluidas: [Nap, Exercise]
+    # Agrupa las variantes de un mismo quehacer. Sin esto quedan 39 clases,
+    # muchas con un puñado de casos, y la equidad no se puede evaluar en casi
+    # ninguna. Se declara antes de medir y se aplica en una sola pasada.
+    mapeo:
+      Cook_Breakfast: Cook
+      Cook_Lunch: Cook
+      Cook_Dinner: Cook
+      Eat_Breakfast: Eat
+      Eat_Lunch: Eat
+      Eat_Dinner: Eat
+      Wash_Breakfast_Dishes: Wash_Dishes
+      Wash_Lunch_Dishes: Wash_Dishes
+      Wash_Dinner_Dishes: Wash_Dishes
+      Work_On_Computer: Work
+      Work_At_Table: Work
+      Work_At_Desk: Work
+      Morning_Meds: Take_Medicine
+      Evening_Meds: Take_Medicine
+
+  franjas_horarias:
+    - {desde: 0, nombre: madrugada}
+    - {desde: 6, nombre: mañana}
+    - {desde: 12, nombre: tarde}
+    - {desde: 18, nombre: noche}
+
+  ventana:
+    n_eventos: 30
+
+  particion:
+    estrategia: temporal_por_dia
+    test_size: 0.2
+
+  documentacion:
+    creador: >-
+      WSU CASAS smart home project, Center for Advanced Studies in Adaptive
+      Systems, Washington State University — http://casas.wsu.edu/
+    motivacion: >-
+      Construir un recurso longitudinal de comportamiento naturalista en el
+      hogar, para investigación en reconocimiento de actividades de la vida
+      diaria con sensores ambientales.
+    mecanismo_recoleccion: >-
+      Sensores instalados en cada vivienda, registrando de forma continua
+      mientras las personas hacían su vida normal. Las actividades las anotó
+      un anotador externo.
+    consentimiento: >-
+      La recolección la realizó CASAS con residentes voluntarios de una
+      comunidad de retiro, bajo su propio protocolo de investigación. Este
+      proyecto no recolectó datos ni tuvo contacto con personas participantes.
+    datos_personales: >-
+      No hay identificadores directos, pero los datos describen la rutina
+      doméstica de personas identificables por su patrón de vida, y el
+      identificador de vivienda las separa entre sí. Se tratan como sensibles:
+      el crudo nunca se versiona y la bitácora guarda un hash de la ventana de
+      entrada, no los eventos.
+    uso_en_proyecto: >-
+      Entrenamiento y evaluación del modelo de referencia que el marco audita.
+      Su desempeño no se optimiza.
+    usos_no_recomendados: >-
+      No usar para inferir estado de salud, capacidad funcional o riesgo
+      clínico de una persona, ni para vigilancia. Nueve viviendas de una misma
+      comunidad de retiro no sostienen conclusiones sobre poblaciones.
+    licencia: >-
+      CC BY 4.0, según el depósito oficial de CASAS en Zenodo
+      (DOI 10.5281/zenodo.15708568). Citar: D. Cook, "Learning
+      setting-generalized activity models for smart spaces", IEEE Intelligent
+      Systems, 2011.
+    instrucciones_descarga: >-
+      Descargar `labeled_data.zip` de https://zenodo.org/records/15708568 y
+      ejecutar `python scripts/preparar_hogares.py <directorio> 30`, que aplica
+      la regla de selección y deja las viviendas en `datos/crudos/hogares/`.
+      El crudo no se versiona nunca.
+
+# --- Modelo de referencia ----------------------------------------------------
+modelo:
+  tipo: RandomForestClassifier
+  version: "0.1.0"
+  hiperparametros:
+    n_estimators: 300
+    max_depth: 12
+    min_samples_leaf: 5
+    class_weight: balanced
+    random_state: 42
+    n_jobs: 1
+
+# --- Principio 1: Explicabilidad ---------------------------------------------
+explicabilidad:
+  explainer: TreeExplainer
+  perturbacion: tree_path_dependent
+  guardar_local_por_inferencia: true
+  muestras_graficos: 1000
+  caracteristicas_destacadas: 3
+  ejemplos_por_tipo: 3
+
+# --- Principio 2: Equidad ----------------------------------------------------
+equidad:
+  subgrupos:
+    # El subgrupo que este piloto viene a habilitar: cada vivienda es una
+    # persona distinta, así que comparar entre hogares es comparar entre la
+    # población monitoreada, que es lo que pide el R4.1.
+    - nombre: hogar
+      columna: hogar
+      categorias: [hh101, hh102, hh103, hh104, hh105, hh106, hh107, hh108, hh109]
+      justificacion: >-
+        Cada vivienda corresponde a una persona o unidad doméstica distinta,
+        con su propia rutina y su propia instalación de sensores. Un servicio
+        de monitoreo que funcione peor en una vivienda deja sin cobertura a esa
+        persona en particular, que es la discriminación que el principio de
+        equidad busca evitar.
+    - nombre: franja_horaria
+      columna: franja_horaria
+      categorias: [madrugada, mañana, tarde, noche]
+      justificacion: >-
+        Las actividades cambian a lo largo del día. Comparar por franja
+        comprueba que el sistema no deje sin cobertura las actividades propias
+        de una parte del día.
+    - nombre: tipo_dia
+      columna: tipo_dia
+      categorias: [laborable, fin_de_semana]
+      justificacion: >-
+        La rutina de fin de semana difiere de la de un día laborable, y en una
+        comunidad de retiro concentra visitas. Un sistema que degrada con
+        visitas es un problema real de un servicio de monitoreo domiciliario.
+
+  limitaciones:
+    - >-
+      Los subgrupos por vivienda son poblacionales, pero el dataset no publica
+      edad, sexo ni condición de salud de cada residente. La desagregación por
+      atributos demográficos protegidos sigue fuera de alcance: se compara
+      entre personas, no entre categorías demográficas.
+    - >-
+      Las nueve viviendas pertenecen a la misma comunidad de retiro y fueron
+      instaladas por el mismo equipo. La comparación entre hogares no
+      representa la variabilidad de un despliegue en viviendas heterogéneas.
+    - >-
+      Las viviendas no tienen las mismas habitaciones. Las características son
+      la unión de zonas, así que una vivienda sin comedor tiene
+      `conteo_DiningRoom` en cero en todas sus ventanas: en la tabla, una zona
+      ausente y una zona sin actividad se ven igual.
+    - >-
+      La franja horaria se deriva de la hora, que es además una variable de
+      entrada del modelo: parte de la disparidad entre franjas es por diseño,
+      no un sesgo emergente.
+
+  soporte_minimo: 30
+
+  umbrales:
+    true_positive_rate_difference: 0.10   # igualdad de oportunidades
+    false_positive_rate_difference: 0.10
+
+  descriptivas:
+    - demographic_parity_difference
+    - selection_rate_ratio              # "regla del 80 %"
+
+  justificacion_umbrales: >-
+    No existe un umbral normativo para diferencias absolutas de tasas en este
+    dominio. Se adopta 0,10 —diez puntos porcentuales— como criterio propio
+    para señalar una disparidad relevante entre categorías: por debajo de ese
+    margen, la diferencia queda dentro de lo que el tamaño de los subgrupos de
+    este conjunto de evaluación permite distinguir del azar. La regla del 80 %,
+    que sí tiene origen normativo en la selección de personal, se reporta como
+    descriptiva porque presupone un resultado favorable que en la clasificación
+    de actividades no existe. Con nueve viviendas, la diferencia entre la mejor
+    y la peor es más exigente que con dos categorías: el umbral no se ajusta
+    por eso, y la cobertura declarada en el reporte permite leerlo. Ambos
+    criterios quedan sujetos a la validación por un panel multidisciplinario
+    prevista en el Capítulo 6.
+
+# --- Principio 3: Trazabilidad ------------------------------------------
+trazabilidad:
+  version_esquema: "1.0.0"
+  formato: jsonl
+  responsable_por_defecto: >-
+    Méndez Arias Miguel Ángel y Segura Miranda Laura María — Investigadores
+    responsables, Universidad CENFOTEC
+
+# --- Articulación normativa --------------------------------------------------
+articulacion_normativa:
+  explicabilidad:
+    enia_cr: "Principio de transparencia y explicabilidad"
+    ai_act_eu: "Art. 13 — Transparencia y comunicación de información"
+    nist_ai_rmf: "MEASURE 2.9 / Función EXPLAIN"
+  equidad:
+    enia_cr: "Principio de equidad y no discriminación"
+    ai_act_eu: "Art. 10 — Gobernanza de datos y sesgos"
+    nist_ai_rmf: "MEASURE 2.11 — Sesgo perjudicial"
+  trazabilidad:
+    enia_cr: "Principio de rendición de cuentas y trazabilidad"
+    ai_act_eu: "Art. 12 — Conservación de registros (logging)"
+    nist_ai_rmf: "GOVERN 1.4 / MANAGE 4.1"

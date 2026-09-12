@@ -797,3 +797,65 @@ una zona sin actividad se ven igual en la tabla.
 Verificado sobre datos reales del depósito oficial (`hh124` y `hh127`): 64.217
 eventos, ventanas por vivienda, las dos presentes en entrenamiento y en
 prueba, y `hogar` fuera de las 12 características del modelo.
+
+## D51 — Protocolo del piloto multi-hogar
+Segundo piloto, sobre nueve viviendas de adultos mayores del depósito oficial
+de CASAS en Zenodo (DOI 10.5281/zenodo.15708568, CC BY 4.0). Todo lo que
+sigue se declaró antes de calcular ninguna métrica.
+
+**Selección de viviendas.** Los hogares `hh101` a `hh110` con al menos 30 días
+de registro, truncados a sus primeros 30 días. Quedan nueve: `hh110` tiene 27
+días y la regla lo excluye. El truncado uniforme acota el costo de la corrida
+y, sobre todo, evita que la comparación entre personas dependa de cuánto se
+observó a cada una: contrastar una vivienda de 497 días contra una de 30
+confundiría disparidad con tiempo de observación. La regla vive en
+`scripts/preparar_hogares.py`, así que es reproducible.
+
+**`hogar` decide el veredicto.** Cada vivienda es una persona o unidad
+doméstica distinta, así que comparar entre hogares es comparar entre la
+población monitoreada: es lo que pide el R4.1 y lo que el piloto de Aruba no
+podía hacer (D23). Con nueve categorías, la diferencia entre la mejor y la
+peor es más exigente que con dos. **El umbral no se ajusta por eso**: ajustarlo
+para que el veredicto salga mejor sería exactamente lo que el sellado del
+protocolo existe para impedir. La cobertura declarada en el reporte permite
+leer el resultado con ese contexto.
+
+**Mapeo de actividades.** El vocabulario trae 39 etiquetas, con las variantes
+de un mismo quehacer separadas por momento del día (`Cook_Breakfast`,
+`Cook_Lunch`, `Cook_Dinner`). Sin agrupar, muchas clases quedan con un puñado
+de casos y la equidad no se puede evaluar en casi ninguna. Se agrupan catorce
+etiquetas en cinco clases —Cook, Eat, Wash_Dishes, Work, Take_Medicine— y
+quedan 25 clases. El mapeo se aplica en una sola pasada y el cargador rechaza
+que un destino sea también origen: el resultado dependería del orden de las
+claves del YAML.
+
+**Exclusiones.** `Nap` (6 eventos) y `Exercise` (9), por el mismo criterio que
+`Respirate` en Aruba: con esa cantidad no se puede partir ni evaluar.
+
+**Expediente aparte.** Los artefactos van a `artefactos/hogares/`. Dos
+corridas no pueden pisarse la evidencia, que fue la lección de D49.
+
+**Aruba no se retira.** Queda como `config.yaml`, y el marco corre sobre los
+dos datasets con formatos distintos sin tocar una línea del núcleo. Es la
+demostración de que el contrato de ingesta cumple lo que prometía.
+
+**Composición resultante**, para el datasheet: 1.226.316 eventos, una línea
+descartada, 40.866 ventanas repartidas entre 2.050 y 6.624 por vivienda, y 25
+clases. Dos cambios que importan frente a Aruba:
+
+- `Bed_Toilet_Transition` pasa de 40 ventanas a **322**. Los traslados
+  nocturnos al baño, clínicamente relevantes por el riesgo de caídas, dejan de
+  ser inauditables (era la limitación más incómoda de D43).
+- Aparece `Take_Medicine` con 388 ventanas, que es adherencia a la
+  medicación, y `Otro` baja del 53,8 % al 35,2 %: la anotación cubre más
+  comportamiento real.
+
+**Limitación que persiste.** El dataset no publica edad, sexo ni condición de
+salud de cada residente. Los subgrupos son poblacionales pero no demográficos:
+se compara entre personas, no entre categorías protegidas. Y las nueve
+viviendas pertenecen a la misma comunidad de retiro, así que la comparación no
+representa la variabilidad de un despliegue heterogéneo.
+
+**Menor, declarado:** 273 eventos de 1,2 millones (0,02 %) traen valores
+numéricos en sensores que comparten el nombre de una habitación. Se cuentan
+como eventos de esa zona.

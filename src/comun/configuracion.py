@@ -60,6 +60,9 @@ class ConfigVentana:
 class ConfigActividades:
     etiqueta_sin_actividad: str
     excluidas: tuple[str, ...]
+    # Etiqueta original -> etiqueta agrupada. Permite unir las variantes de
+    # un mismo quehacer (`Cook_Breakfast`, `Cook_Lunch`) sin tocar el crudo.
+    mapeo: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -459,9 +462,26 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
     actividades = _exigir_mapa(bloque["actividades"], "datos.actividades")
     _claves(
         actividades,
-        {"etiqueta_sin_actividad", "excluidas"},
+        {"etiqueta_sin_actividad", "excluidas", "mapeo"},
         "datos.actividades",
     )
+    mapeo_crudo = _exigir_mapa(actividades["mapeo"], "datos.actividades.mapeo")
+    mapeo = {
+        _texto_no_vacio(origen, "datos.actividades.mapeo (clave)"): _texto_no_vacio(
+            destino, f"datos.actividades.mapeo.{origen}"
+        )
+        for origen, destino in mapeo_crudo.items()
+    }
+    # El mapeo se aplica en una sola pasada. Si un destino fuera a su vez
+    # origen, el resultado dependería del orden de las claves, que es
+    # exactamente el tipo de estado oculto que el marco no admite.
+    encadenadas = sorted(set(mapeo.values()) & set(mapeo))
+    if encadenadas:
+        raise ConfiguracionInvalida(
+            f"datos.actividades.mapeo: {encadenadas} aparecen como origen y "
+            "como destino; el mapeo se aplica en una sola pasada y el "
+            "resultado dependería del orden"
+        )
 
     zonas_crudas = _exigir_mapa(bloque["zonas"], "datos.zonas")
     if not zonas_crudas:
@@ -511,6 +531,7 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
             excluidas=_lista_de_textos(
                 actividades["excluidas"], "datos.actividades.excluidas"
             ),
+            mapeo=mapeo,
         ),
         ventana=ConfigVentana(n_eventos=n_eventos),
         particion=ParticionDatos(estrategia=estrategia, test_size=test_size),

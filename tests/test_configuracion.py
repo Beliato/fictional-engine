@@ -359,3 +359,16 @@ def test_yaml_que_no_es_un_mapa(tmp_path):
 
     with pytest.raises(ConfiguracionInvalida, match="bloque de claves"):
         cargar_configuracion(ruta)
+
+
+def test_el_mapeo_de_actividades_no_puede_encadenarse(tmp_path):
+    """Se aplica en una sola pasada: si un destino fuera también origen, el
+    resultado dependería del orden de las claves del YAML."""
+    crudo = _config_valida()
+    crudo["datos"]["actividades"]["mapeo"] = {
+        "Cook_Lunch": "Cook",
+        "Cook": "Comida",
+    }
+
+    with pytest.raises(ConfiguracionInvalida, match="origen"):
+        cargar_configuracion(_escribir(tmp_path, crudo))
