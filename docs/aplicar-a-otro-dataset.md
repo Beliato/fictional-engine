@@ -94,6 +94,9 @@ que nunca reporta daría una columna entera de nulos.
   zonas:
     PIR_SALA: LivingRoom
     PIR_COCINA: Kitchen
+  nombres_zona:
+    LivingRoom: la sala
+    Kitchen: la cocina
 ```
 
 **Es obligatorio para todo sensor de ubicación.** El R3.3 exige que la
@@ -104,12 +107,21 @@ una atribución SHAP sobre `PIR_017` no le dice nada a un cuidador; sobre
 Los sensores de temperatura **no** llevan zona: miden una condición
 ambiental, no localizan a la persona.
 
+`nombres_zona` traduce cada zona al idioma de las personas destinatarias. La
+ENIA exige sistemas cultural y lingüísticamente apropiados (p. 32): un
+identificador en inglés no es información comprensible para quien lee el
+reporte. Solo cambia lo que se muestra; las columnas y los nombres técnicos
+siguen igual, y el reporte los conserva en su propia columna.
+
 ### 4. Las decisiones de dominio
 
 ```yaml
   actividades:
     etiqueta_sin_actividad: Otro     # o descartar esos eventos
     excluidas: [ClaseDemasiadoRara]
+    mapeo:                           # agrupa variantes de un mismo quehacer
+      Cocinar_Desayuno: Cocinar
+      Cocinar_Cena: Cocinar
   franjas_horarias:
     - {desde: 0, nombre: turno_noche}
     - {desde: 8, nombre: turno_dia}
@@ -122,6 +134,19 @@ ambiental, no localizan a la persona.
 
 Cada una es una decisión con consecuencias, y el marco obliga a declararla en
 vez de heredar un valor por defecto.
+
+`mapeo` existe porque un vocabulario de anotación fino —una clase por comida
+del día— deja muchas clases con un puñado de casos, y entonces la equidad no
+se puede evaluar en casi ninguna. Se aplica en una sola pasada y el cargador
+rechaza los encadenamientos: si un destino fuera también origen, el resultado
+dependería del orden de las claves.
+
+El bloque `datos.documentacion` completa el datasheet del paso 2 con lo que el
+marco no puede derivar: creador, motivación, mecanismo de recolección,
+consentimiento, datos personales, uso previsto, usos no recomendados, licencia
+e instrucciones de descarga. Son nueve campos de texto y el cargador los exige
+todos: un apartado vacío en el datasheet se lee como "no aplica" cuando en
+realidad significa "nadie lo escribió".
 
 ### 5. Los subgrupos de equidad y sus umbrales
 
@@ -138,6 +163,8 @@ equidad:
     true_positive_rate_difference: 0.10
     demographic_parity_difference: 0.10
   descriptivas: [selection_rate_ratio]
+  justificacion_umbrales: >-
+    Por qué esos valores y no otros. Va tal cual al protocolo del paso 3.
 ```
 
 Aquí está la exigencia más fuerte del marco: **los umbrales se declaran antes
@@ -151,6 +178,39 @@ porque las actividades ocurren con frecuencias distintas en cada franja
 horaria y la paridad fallaría sin que hubiera sesgo (D42). Con subgrupos
 poblacionales y frecuencias comparables, como en el ejemplo de arriba, puede
 decidir.
+
+## Ya se hizo: dos datasets con formatos distintos
+
+El marco corre sobre dos conjuntos sin que cambie una línea del núcleo, que es
+la comprobación de todo lo anterior:
+
+| | `config.yaml` | `config.hogares.yaml` |
+|---|---|---|
+| Fuente | CASAS Aruba, anotado | CASAS serie `hh`, depósito oficial |
+| Formato | `casas_eventos` (espacios) | `casas_csv` (coma, un archivo por vivienda) |
+| Viviendas | 1 | 9 |
+| Sensores | `M001`…`M031`, con mapeo a zonas | ya nombrados por habitación |
+| Subgrupos | contextuales | **poblacionales** (`hogar`) |
+
+Lo único que se escribió para el segundo fue un lector —`LectorEventosCASASCSV`,
+unas cuarenta líneas— y su configuración. La preparación del conjunto vive en
+`scripts/preparar_hogares.py`, que aplica y documenta la regla de selección.
+
+### Varias viviendas: la columna `hogar`
+
+Cuando el dataset cubre más de una vivienda, el lector emite una quinta
+columna opcional, `hogar`, y el marco cambia tres cosas:
+
+- **Las ventanas no cruzan viviendas.** Una ventana que mezclara dos hogares
+  sería una fila que no describe a nadie.
+- **La partición es temporal dentro de cada hogar**, para que todas aparezcan
+  en entrenamiento y en prueba y su desempeño sea comparable.
+- **`hogar` nunca es característica**: es clave de agrupación y columna
+  sensible. Que el modelo aprendiera a distinguir viviendas sería justo lo que
+  el análisis desagregado quiere poder descartar.
+
+El lector puede apuntar a un archivo o a un directorio; en el segundo caso, el
+nombre de cada archivo pasa a ser el hogar.
 
 ## Lo que el marco no puede resolver por nadie
 
@@ -173,7 +233,8 @@ Antes de correr `make pipeline` sobre un sistema nuevo:
 
 - [ ] El lector está registrado y `datos.formato` lo nombra
 - [ ] Todos los sensores del crudo están declarados por tipo
-- [ ] Todo sensor de ubicación tiene zona
+- [ ] Todo sensor de ubicación tiene zona, y cada zona su nombre para mostrar
+- [ ] `datos.documentacion` está completo: es el datasheet del paso 2
 - [ ] Las actividades excluidas están justificadas en el datasheet
 - [ ] Las franjas horarias coinciden con las categorías del subgrupo
 - [ ] Los umbrales de equidad están declarados **y justificados**

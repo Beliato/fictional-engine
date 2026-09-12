@@ -18,7 +18,8 @@ lo comprueba para todas antes de devolverlas.
 
 Artefacto consolidado
 ---------------------
-Una explicación por archivo serían 11.175 archivos para la prueba de Aruba.
+Una explicación por archivo serían tantos archivos como inferencias: más de
+once mil en el piloto.
 Se escribe un JSONL con una línea por inferencia, y la bitácora referencia
 `<ruta>#<id_evento>`. El verificador de trazabilidad comprueba no solo que el
 archivo exista, sino que el registro concreto esté adentro.
@@ -118,7 +119,8 @@ def construir_explainer(
         raise NotImplementedError(
             f"explicabilidad.perturbacion {ajustes.perturbacion!r} todavía no "
             "está implementada: con un fondo de 100 filas cuesta unas 8 veces "
-            "más que tree_path_dependent (~2,3 h sobre la prueba de Aruba) y "
+            "más que tree_path_dependent (unas 2,3 h sobre una prueba de once "
+            "mil inferencias) y "
             "exige justificar el fondo elegido."
         )
     return shap.TreeExplainer(
