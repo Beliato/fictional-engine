@@ -859,3 +859,95 @@ representa la variabilidad de un despliegue heterogéneo.
 **Menor, declarado:** 273 eventos de 1,2 millones (0,02 %) traen valores
 numéricos en sensores que comparten el nombre de una habitación. Se cuentan
 como eventos de esa zona.
+
+## D52 — Resultados del piloto multi-hogar
+Nueve viviendas, 1.226.316 eventos, 40.866 ventanas, 7.561 inferencias de
+prueba. La corrida completa tarda 9 min 44 s.
+
+**Veredicto: NO CUMPLE**, con evidencia completa: nueve de nueve
+requerimientos cubiertos, bitácora válida con cobertura 1 a 1, hash del
+protocolo verificado en el paso 6 y catorce artefactos sellados en el
+manifiesto. El sistema auditado no cumple; el marco sí produjo el expediente.
+
+**Equidad: no aprueba.** De 108 combinaciones evaluables, 29 exceden su
+umbral: 14 entre hogares, 12 entre franjas horarias y 3 entre tipos de día.
+Las mayores disparidades entre personas son `Work` (0,872), `Eat` (0,810),
+`Cook` (0,503), `Wash_Dishes` (0,447) y `Sleep` (0,425).
+
+**Es la primera vez que el R4.1 se evalúa como lo pide su enunciado.** Hasta
+este piloto los subgrupos eran contextuales (D23); ahora cada hogar es una
+persona distinta, así que la comparación es entre la población monitoreada.
+
+**Diagnóstico de `Cook`, la disparidad más ilustrativa.** `hh107` tiene el
+máximo de ejemplos de entrenamiento (943) y la **peor** tasa de aciertos
+(0,292); `hh103` tiene 414 y la mejor (0,795). No es escasez de datos. `hh107`
+es la única vivienda con dos residentes del piloto, y cuando falla predice
+`Wash_Dishes` 83 veces: consistente con dos personas en la cocina haciendo
+cosas distintas. Queda como hipótesis respaldada, no como conclusión: el mismo
+`hh107` tiene el **mejor** desempeño en `Sleep` (0,867), así que el patrón
+depende de la actividad.
+
+**Advertencia que el reporte debe llevar.** El desempeño global es bajo:
+exactitud entre 0,22 y 0,43 por vivienda y F1 macro entre 0,16 y 0,35, contra
+0,70 de exactitud en Aruba. Es esperable —25 clases en vez de 11 y un solo
+modelo para nueve casas con plantas distintas— pero un modelo más débil tiene
+más lugar donde mostrar disparidad, y eso matiza la lectura de los 29
+incumplimientos. **El protocolo no se cambia para mejorar ese número**: sería
+ajustar después de ver resultados.
+
+## D53 — Los términos se verificaron contra la ENIA, no contra la paráfrasis
+Se contrastó lo que el marco afirma con el documento oficial (MICITT, 2024,
+versión 1.0 del 24 de octubre de 2024). La numeración y la selección de
+principios eran correctas: 3 Transparencia y explicabilidad (p. 32), 4 Equidad
+y no discriminación (pp. 32-33), 5 Responsabilidad (p. 33). Tres cosas no lo
+eran.
+
+**El nombre del principio 5.** Se llamaba "Principio de rendición de cuentas y
+trazabilidad" en `articulacion_normativa`, y la ENIA lo llama
+**Responsabilidad**. La rendición de cuentas y la trazabilidad son contenidos
+suyos, no su nombre. El texto salía impreso en el model card y en el reporte
+de cumplimiento.
+
+**Una página mal citada.** La ficha atribuía el derecho a entender e impugnar
+decisiones a las pp. 31-32; está en la p. 32. La p. 31 es supervisión humana,
+otro principio y fuera de alcance.
+
+**Una paráfrasis que endurecía la fuente.** Se decía "la edad como diferencia
+protegida". La ENIA enumera la edad entre las diferencias que deben respetarse
+para asegurar accesibilidad; no usa la categoría jurídica de atributo
+protegido.
+
+**Alcance declarado en el expediente.** El marco cubre 3 de los 7 principios
+rectores, y dentro de esos tres la cobertura es parcial. El reporte de
+cumplimiento ahora lo dice: no cubre el derecho a saber que se trata con una
+IA ni la prerrogativa de no ser afectado (principio 3); detecta el sesgo pero
+no lo corrige, ni cubre accesibilidad ni adaptación cultural y lingüística
+(principio 4); y la supervisión humana efectiva es el principio 2, fuera de
+alcance. Un expediente que solo muestre lo que cubre induce a error sobre lo
+que no.
+
+**Qué entiende la ENIA por equidad.** Cuatro cosas: no discriminación
+algorítmica, accesibilidad e inclusión respetando diferencias de edad, etnia,
+género, religión, capacidad económica y nivel formativo, minimización de
+sesgos con auditorías continuas que identifiquen **y corrijan**, y
+oportunidades de formación para grupos subrepresentados. El marco cubre la
+primera y la mitad de la tercera.
+
+**Ninguno de los subgrupos evaluados corresponde a las categorías que la ENIA
+nombra**, y no es consecuencia de haber elegido Aruba. Se verificó sobre el
+catálogo completo del depósito oficial: los 82 hogares anotados pertenecen a
+las series hh, tm, mn, rw, ihs, mva y mv, **todas de personas adultas
+mayores**; los conjuntos de familias y de adultos jóvenes existen solo sin
+anotar, sin variable objetivo. Ningún hogar publica edad, sexo ni condición de
+salud. La limitación es estructural del dominio, tal como anticipaba el
+Capítulo 5 de la tesis; el piloto ahora lo demuestra en vez de suponerlo.
+
+Un matiz a favor que conviene escribir: la edad no es variable de comparación
+porque es constante. El sistema opera enteramente sobre el grupo que la ENIA
+señala como prioritario, así que la exigencia se satisface en el diseño y en
+la documentación, no en una comparación entre edades que sería imposible.
+
+**Revisar:** la ENIA exige sistemas cultural y lingüísticamente apropiados
+(p. 32), y las explicaciones del piloto nombran las zonas en inglés
+(`Movimiento en LoungeChair`). D39 lo anotaba como limitación cosmética: es un
+incumplimiento de equidad, y se corrige con un mapeo de nombres para mostrar.

@@ -19,7 +19,8 @@
 
 ## 2. Equidad
 - Subgrupos evaluados: {{subgrupos}}
-- Umbrales PRE-DECLARADOS (de `config.yaml`, sin ajuste posterior):
+- Umbrales PRE-DECLARADOS, sellados por hash en el paso 3 y sin ajuste
+  posterior:
 
 {{tabla_umbrales}}
 
@@ -33,6 +34,10 @@
 - Registros de inferencia: {{n_inferencias}}
 - Verificación de integridad: {{estado_verificacion_bitacora}}
 - Cobertura (1 registro por inferencia del set de prueba): {{estado_cobertura}}
+
+## Alcance del marco frente a la ENIA
+
+{{alcance}}
 
 ## Cobertura de los nueve requerimientos
 

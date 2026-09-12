@@ -372,3 +372,16 @@ def test_el_mapeo_de_actividades_no_puede_encadenarse(tmp_path):
 
     with pytest.raises(ConfiguracionInvalida, match="origen"):
         cargar_configuracion(_escribir(tmp_path, crudo))
+
+
+@pytest.mark.parametrize("archivo", ["config.yaml", "config.hogares.yaml"])
+def test_los_principios_se_nombran_como_en_la_enia(archivo):
+    """El quinto principio se llama "Responsabilidad": la rendición de cuentas
+    y la trazabilidad son contenidos suyos, no su nombre (D53)."""
+    articulacion = cargar_configuracion(RAIZ / archivo).articulacion_normativa
+
+    assert "Responsabilidad" in articulacion["trazabilidad"]["enia_cr"]
+    assert "Equidad y no discriminación" in articulacion["equidad"]["enia_cr"]
+    assert "Transparencia y explicabilidad" in articulacion["explicabilidad"]["enia_cr"]
+    # Paráfrasis que teníamos antes y que la fuente no usa.
+    assert "rendición de cuentas y trazabilidad" not in articulacion["trazabilidad"]["enia_cr"]

@@ -37,7 +37,8 @@
 {{personas_afectadas}}
 
 > Base normativa: el derecho a entender e impugnar decisiones automatizadas
-> (ENIA, pp. 31-32).
+> (ENIA, p. 32). La p. 31 corresponde al principio de supervisión humana,
+> que este marco no cubre.
 
 ## Delimitación de la evaluación
 {{delimitacion}}

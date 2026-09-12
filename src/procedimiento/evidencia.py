@@ -458,6 +458,7 @@ def generar_reporte_cumplimiento(ctx: "ContextoEjecucion") -> Path:
     """
     from src.comun.semillas import instantanea_entorno
     from src.equidad.reporte import ESTADOS, tabla_protocolo, tabla_resultados
+    from src.procedimiento.requerimientos import alcance_declarado
 
     config = ctx.config
     modelo = _exigir(ctx.modelo, "el modelo sellado")
@@ -509,6 +510,7 @@ def generar_reporte_cumplimiento(ctx: "ContextoEjecucion") -> Path:
         "n_inferencias": formatear_miles(informe.n_registros),
         "estado_verificacion_bitacora": "VÁLIDA" if informe.valido else "NO VÁLIDA",
         "estado_cobertura": "COMPLETA" if cobertura_bitacora.valido else "INCOMPLETA",
+        "alcance": alcance_declarado(),
         "tabla_requerimientos": _tabla_requerimientos(cobertura),
         "tabla_articulacion_normativa": _tabla_articulacion(config),
         "git_commit": instantanea_entorno()["git_commit"],
