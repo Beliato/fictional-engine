@@ -578,3 +578,48 @@ Decisiones de detalle:
   no aprueba (D9).
 **Revisar:** la justificación de `franja_horaria` es un borrador; conviene
 reescribirla con el criterio del dominio.
+
+## D46 — La descripción del sistema y del dataset son datos, no código
+Los pasos 1 y 2 producen la ficha de caracterización y el datasheet. Lo que
+esos documentos afirman —finalidad, población destinataria, contexto de
+despliegue, procedencia del dataset, consentimiento, licencia— el marco no lo
+puede derivar: son declaraciones del despliegue. Viven en los bloques
+`sistema` y `datos.documentacion` de `config.yaml`, y el código las copia sin
+interpretarlas, igual que las limitaciones de equidad (D45). Auditar otro
+sistema es reescribir esos bloques, no tocar el código.
+
+El cargador los exige completos y no vacíos: un apartado en blanco en la
+ficha se lee como "no aplica" cuando en realidad significa "nadie lo
+escribió".
+
+Lo que sí deriva el marco: número de instancias antes y después de preparar,
+clases y su distribución, ventana temporal, hashes, y la descripción de las
+transformaciones y de la derivación de subgrupos, armada desde la propia
+configuración. Así el datasheet no puede contradecir lo que el pipeline hizo.
+
+**Responsable declarado.** `trazabilidad.responsable_por_defecto` nombra a
+los dos autores de la tesis: es quien responde por las inferencias del piloto
+(Tabla 8, R5.3). La prueba que comprueba que el verificador detecta el
+placeholder dejó de depender del valor del repositorio y declara el suyo.
+
+**Licencia del dataset.** El depósito de CASAS en Zenodo (2025) publica estos
+hogares bajo CC BY 4.0 (DOI 10.5281/zenodo.15708568). La copia usada aquí
+proviene de la distribución anterior, cuyo README pedía no redistribuir sin
+permiso expreso; el crudo sigue fuera del repositorio y el datasheet declara
+las dos cosas.
+
+**Dos hashes de datos.** Se sellan por separado el crudo tal como se leyó y
+el cuadro de características. Un auditor puede comprobar el origen y la
+preparación sin depender de que el otro sea correcto.
+
+**Marcas temporales.** La bitácora de inferencias registrará la hora real de
+cada inferencia, como pide la Tabla 8 ("fecha y hora de la inferencia"), y la
+ficha declara la fecha de caracterización. En consecuencia, los artefactos
+que llevan la identidad de la corrida —ficha, protocolo, bitácora y
+manifiesto— no son byte-idénticos entre ejecuciones, mientras que los
+técnicos —explicabilidad, equidad— sí lo son. La comparación entre corridas
+se hace sobre estos últimos y sobre el contenido de los primeros sin su marca
+de tiempo.
+**Revisar:** los textos de `sistema` son un borrador redactado a partir del
+Capítulo 1 y de la Tabla 10; conviene revisarlos con criterio propio, en
+especial la finalidad y las vías de impugnación.

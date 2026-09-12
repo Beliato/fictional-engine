@@ -20,9 +20,6 @@
 ## Población destinataria
 {{poblacion_destinataria}}
 
-> Indicar explícitamente si el sistema opera sobre personas adultas mayores y
-> qué implica eso respecto de la edad como diferencia protegida (ENIA, p. 32).
-
 ## Configuración de sensores
 {{configuracion_sensores}}
 
@@ -39,14 +36,8 @@
 ## Personas afectadas y vías de impugnación
 {{personas_afectadas}}
 
-> El derecho a entender e impugnar decisiones (ENIA, pp. 31-32) exige
-> identificar quién recibe la salida del sistema y por qué vía puede
-> objetarla.
+> Base normativa: el derecho a entender e impugnar decisiones automatizadas
+> (ENIA, pp. 31-32).
 
 ## Delimitación de la evaluación
 {{delimitacion}}
-
-> El objeto de evaluación es el marco operativo y su capacidad de generar
-> evidencia verificable; el modelo actúa como sujeto de prueba, no como
-> objeto de optimización (Tabla 10). La pertinencia clínica de las
-> predicciones queda fuera de alcance.

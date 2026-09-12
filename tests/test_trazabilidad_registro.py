@@ -257,7 +257,16 @@ def test_verificar_detecta_responsable_placeholder(
     bitacora, config_sin_explicaciones
 ):
     """Un `responsable` que contiene 'TODO' invalida la bitácora."""
-    RegistroEstructurado(bitacora, config_sin_explicaciones).registrar(
+    # La prueba no depende del valor que tenga el config del repo: declara
+    # el placeholder que debe detectarse.
+    config = dataclasses.replace(
+        config_sin_explicaciones,
+        trazabilidad=dataclasses.replace(
+            config_sin_explicaciones.trazabilidad,
+            responsable_por_defecto="TODO: Nombre Apellido — Rol / Unidad",
+        ),
+    )
+    RegistroEstructurado(bitacora, config).registrar(
         id_evento="evt-001",
         referencia_entrada="a" * 64,
         salida_modelo="dormir",
@@ -265,7 +274,7 @@ def test_verificar_detecta_responsable_placeholder(
         referencia_explicacion="artefactos/explicaciones/evt-001.json",
     )
 
-    informe = verificar_registro(bitacora, config_sin_explicaciones)
+    informe = verificar_registro(bitacora, config)
     assert not informe.valido
     assert any("plantilla" in p for p in informe.problemas)
 

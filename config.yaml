@@ -14,6 +14,53 @@
 
 version_marco: "0.1.0"
 
+# --- Sistema evaluado --------------------------------------------------------
+# Describe el sistema auditado, no el marco. El código no interpreta nada de
+# esto: lo copia tal cual a la ficha de caracterización del paso 1 (Tabla 9).
+# Auditar otro sistema = reescribir este bloque.
+sistema:
+  nombre: >-
+    Clasificador de actividades de la vida diaria a partir de sensores PIR
+    (caso de estudio del marco operativo de cumplimiento de la ENIA)
+  finalidad: >-
+    Inferir qué actividad de la vida diaria realiza una persona adulta mayor
+    que vive sola, a partir de eventos de sensores ambientales pasivos, para
+    que un servicio de monitoreo domiciliario pueda acompañar su permanencia
+    segura y autónoma en el hogar. El sistema no diagnostica ni decide
+    intervenciones clínicas.
+  poblacion_destinataria: >-
+    Personas adultas mayores que viven de forma independiente en su hogar, y
+    las personas cuidadoras que reciben la información. La edad es la
+    condición que define a la población, así que el sistema opera sobre una
+    diferencia protegida: la ENIA reconoce a las personas adultas mayores
+    como grupo prioritario (MICITT, 2024), y el AI Act EU agrava las
+    exigencias cuando un sistema se dirige a un grupo vulnerable por su edad.
+  tarea_aprendizaje: >-
+    Clasificación multiclase de ventanas de eventos de sensores en
+    actividades de la vida diaria, sobre datos tabulares.
+  contexto_sensores: >-
+    Sensores de infrarrojo pasivo en el techo, sensores magnéticos de puerta y
+    sensores de temperatura. No hay cámara ni micrófono: la literatura del
+    dominio documenta esta configuración como la menos intrusiva para
+    entornos domiciliarios (Kim et al., 2022).
+  contexto_despliegue: >-
+    Piloto de investigación sobre datos públicos ya recolectados. No hay
+    despliegue en viviendas reales ni personas participantes: los resultados
+    documentan la aplicabilidad técnica del marco, no la pertinencia clínica
+    del modelo.
+  personas_afectadas: >-
+    La persona monitoreada y quienes la cuidan. En un despliegue real, ambas
+    deben poder pedir la explicación de una inferencia concreta —el marco la
+    produce por evento— y objetarla ante la organización declarada como
+    responsable en la bitácora. En este piloto esa vía no existe porque no hay
+    personas monitoreadas: los datos son públicos e históricos.
+  delimitacion: >-
+    El objeto de evaluación es el marco operativo y su capacidad de generar
+    evidencia verificable; el modelo actúa como sujeto de prueba, no como
+    objeto de optimización (Tabla 10). Quedan fuera de alcance la pertinencia
+    clínica de las predicciones y la generalización del instrumento a todo
+    contexto de despliegue.
+
 # --- Reproducibilidad ---------------------------------------------------------
 semilla: 42
 determinismo:
@@ -48,8 +95,8 @@ datos:
     CASAS Aruba (WSU CASAS smart home project). Residente única: mujer adulta
     voluntaria; hijos y nietos la visitan con regularidad. 2010-11-04 a
     2011-06-11. Citar: D. Cook, "Learning setting-generalized activity models
-    for smart spaces", IEEE Intelligent Systems, 2011. La licencia del dataset
-    prohíbe redistribuirlo sin permiso expreso de CASAS.
+    for smart spaces", IEEE Intelligent Systems, 2011. Licencia y procedencia
+    de la copia usada: ver `datos.documentacion.licencia`.
   archivo_crudo: datos/crudos/aruba.txt
   # Formato del crudo. Selecciona el lector de `src/comun/lectores.py`, que
   # es lo único del marco que conoce un formato concreto. Aplicar el marco a
@@ -113,6 +160,47 @@ datos:
     # `Respirate` tiene 6 instancias en todo el dataset. Con seis ejemplos no
     # se puede partir ni evaluar de forma sensata.
     excluidas: [Respirate]
+
+  # Documentación del dataset para el datasheet del paso 2 (Gebru et al.,
+  # 2021). Es propia del dataset, no del marco: el código la copia tal cual.
+  documentacion:
+    creador: >-
+      WSU CASAS smart home project, Center for Advanced Studies in Adaptive
+      Systems, Washington State University — http://casas.wsu.edu/
+    motivacion: >-
+      Construir un recurso longitudinal de comportamiento naturalista en el
+      hogar, para investigación en reconocimiento de actividades de la vida
+      diaria con sensores ambientales.
+    mecanismo_recoleccion: >-
+      Sensores instalados en la vivienda, registrando de forma continua
+      mientras la residente hacía su vida normal. Las actividades las anotó
+      un anotador externo.
+    consentimiento: >-
+      La recolección la realizó CASAS con residentes voluntarios, bajo su
+      propio protocolo de investigación. Este proyecto no recolectó datos ni
+      tuvo contacto con personas participantes.
+    datos_personales: >-
+      No hay identificadores directos, pero los datos describen la rutina
+      doméstica de una persona identificable por su patrón de vida. Se tratan
+      como sensibles: el crudo nunca se versiona y la bitácora guarda un hash
+      de la ventana de entrada, no los eventos.
+    uso_en_proyecto: >-
+      Entrenamiento y evaluación del modelo de referencia que el marco audita.
+      Su desempeño no se optimiza.
+    usos_no_recomendados: >-
+      No usar para inferir estado de salud, capacidad funcional o riesgo
+      clínico de una persona, ni para vigilancia. Una sola vivienda y una sola
+      residente no sostienen conclusiones sobre poblaciones.
+    licencia: >-
+      El depósito de CASAS en Zenodo (2025) publica estos hogares bajo CC BY
+      4.0, DOI 10.5281/zenodo.15708568. La copia usada aquí proviene de la
+      distribución anterior, cuyo README pedía no redistribuir sin permiso
+      expreso de CASAS; por eso el crudo se mantiene fuera del repositorio.
+    instrucciones_descarga: >-
+      En https://zenodo.org/records/15708568, `data.zip` trae un archivo por
+      hogar y `labeled_data.zip` los hogares anotados por un anotador externo.
+      Colocar el crudo en `datos/crudos/` con el nombre declarado en
+      `datos.archivo_crudo`, y no versionarlo nunca.
 
   # Cortes que definen el subgrupo de equidad `franja_horaria`. Es una
   # decisión de dominio, no una constante: un servicio con turnos de noche
@@ -259,7 +347,9 @@ trazabilidad:
   version_esquema: "1.0.0"
   formato: jsonl
   # Responsable declarado por defecto para las inferencias (persona + rol).
-  responsable_por_defecto: "TODO: Nombre Apellido — Rol / Unidad responsable"
+  responsable_por_defecto: >-
+    Méndez Arias Miguel Ángel y Segura Miranda Laura María — Investigadores
+    responsables, Universidad CENFOTEC
 
 # --- Articulación normativa ---------------------------------------------------
 # Mapeo (provisional, validar con especialista legal) de cada principio de la
