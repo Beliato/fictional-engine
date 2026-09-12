@@ -750,3 +750,50 @@ error de ejecución (D9). El target falla solo con código 1.
 
 El guion de la demostración está en `docs/demo.md`: qué mostrar, en qué orden
 y qué preguntas responde cada artefacto.
+
+## D50 — El contrato admite varias viviendas
+El contrato de ingesta gana una quinta columna **opcional**: `hogar`. Aparece
+cuando el dataset cubre varias viviendas, y cambia tres cosas aguas abajo.
+
+**Por qué.** El R4.1 pide desagregar "entre subgrupos de la población
+monitoreada". Con una sola residente eso era imposible y quedó declarado como
+limitación (D23). Con varias viviendas cada hogar es una persona distinta, así
+que comparar entre hogares **es** comparar entre la población: el subgrupo
+deja de ser contextual y pasa a ser poblacional.
+
+**`hogar` no es una característica.** Es clave de agrupación y columna
+sensible, y se excluye de forma explícita del cuadro que ve el modelo. Que el
+modelo aprendiera a distinguir viviendas sería justamente lo que el análisis
+desagregado quiere poder descartar.
+
+**Las ventanas no cruzan hogares.** Una ventana que mezclara dos viviendas
+sería una fila que no describe a nadie. El identificador de ventana lleva el
+hogar y la posición dentro de él.
+
+**La partición es temporal dentro de cada hogar.** Los últimos días de cada
+vivienda van a prueba, no los últimos días del conjunto. Si se partiera
+global, una vivienda podría quedar entera de un lado y su desempeño no sería
+comparable con el de las demás. Un hogar con menos de dos días distintos es un
+error, y el mensaje dice de cuál se trata.
+
+**El orden que exige el contrato pasa a ser por hogar.** Con varias viviendas
+el orden global no significa nada; lo que la ventana y la partición necesitan
+es que cada hogar venga en un bloque contiguo y ordenado. El verificador del
+contrato comprueba las dos cosas.
+
+**Lo propio del formato sigue en el lector.** `LectorEventosCASASCSV` lee un
+archivo o un directorio —el nombre del archivo pasa a ser el hogar— y resuelve
+una ambigüedad del dataset: `OutsideDoor` reporta ON/OFF como sensor de
+movimiento y OPEN/CLOSE como puerta. Como el marco distingue sensores por
+nombre, los eventos de puerta se renombran a `<sensor>_Puerta`. La ambigüedad
+es del dataset y se resuelve donde vive lo propio de cada formato.
+
+**Limitación declarada.** Las viviendas no tienen las mismas habitaciones. Las
+características son la unión de zonas, así que un hogar sin comedor tiene
+`conteo_DiningRoom` en cero en todas sus ventanas. Eso es información real
+sobre la instalación, pero conviene que el reporte lo diga: una zona ausente y
+una zona sin actividad se ven igual en la tabla.
+
+Verificado sobre datos reales del depósito oficial (`hh124` y `hh127`): 64.217
+eventos, ventanas por vivienda, las dos presentes en entrenamiento y en
+prueba, y `hogar` fuera de las 12 características del modelo.
