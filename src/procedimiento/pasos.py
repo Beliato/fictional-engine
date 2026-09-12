@@ -24,7 +24,23 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from src.comun.datos import (
+    cargar_crudo,
+    construir_caracteristicas,
+    hash_dataframe,
+    particionar,
+    validar_esquema,
+)
+from src.comun.modelado import entrenar
+from src.comun.utilidades import ahora_utc_iso, hash_archivo
+from src.procedimiento.evidencia import (
+    generar_datasheet,
+    generar_ficha_caracterizacion,
+)
+
 if TYPE_CHECKING:
+    import pandas as pd
+
     from src.comun.configuracion import Configuracion
     from src.comun.datos import ParticionSupervisada
     from src.comun.modelado import ModeloSellado
@@ -41,6 +57,12 @@ class ContextoEjecucion:
     marca_inicio: str
     particion: "ParticionSupervisada | None" = None
     modelo: "ModeloSellado | None" = None
+    # Cuadro de características completo, antes de partir: el datasheet
+    # describe el dataset entero, no el conjunto de entrenamiento.
+    caracteristicas: "pd.DataFrame | None" = None
+    n_eventos_crudos: int | None = None
+    hash_datos_crudos: str | None = None
+    # Hash del cuadro de características (datos ya procesados).
     hash_datos: str | None = None
     # Hash del `config.yaml` sellado en el paso 3. Es lo que permite demostrar
     # que los umbrales de equidad no se tocaron después de ver resultados.
@@ -48,6 +70,38 @@ class ContextoEjecucion:
     veredicto_equidad: "VeredictoEquidad | None" = None
     artefactos: dict[str, Path] = field(default_factory=dict)
     eventos: list[dict[str, Any]] = field(default_factory=list)
+
+
+def nuevo_contexto(
+    config: "Configuracion", id_ejecucion: str
+) -> ContextoEjecucion:
+    """Contexto inicial de una ejecución, con su marca de inicio en UTC."""
+    return ContextoEjecucion(
+        config=config, id_ejecucion=id_ejecucion, marca_inicio=ahora_utc_iso()
+    )
+
+
+def registrar_evento(
+    ctx: ContextoEjecucion, paso: str, **detalle: Any
+) -> ContextoEjecucion:
+    """Añade un evento a la bitácora de ejecución del contexto.
+
+    Es lo que después permite decir qué paso corrió, cuándo y con qué
+    entradas y salidas. Se registra al terminar el paso: un evento anotado
+    antes de hacer el trabajo afirmaría algo que todavía no ocurrió.
+    """
+    evento = {"paso": paso, "marca_temporal": ahora_utc_iso(), **detalle}
+    return replace(ctx, eventos=[*ctx.eventos, evento])
+
+
+def _registrar_artefacto(
+    ctx: ContextoEjecucion, paso: str, nombre: str, ruta: Path
+) -> ContextoEjecucion:
+    """Guarda la ruta del artefacto producido y su hash en la bitácora."""
+    ctx = replace(ctx, artefactos={**ctx.artefactos, nombre: ruta})
+    return registrar_evento(
+        ctx, paso, artefacto=nombre, ruta=str(ruta), hash=hash_archivo(ruta)
+    )
 
 
 # =============================================================================
@@ -61,10 +115,39 @@ def precondicion_preparar_datos(ctx: ContextoEjecucion) -> ContextoEjecucion:
     Carga el crudo de CASAS, valida el esquema, construye características,
     particiona train/test de forma determinista y sella el hash de los datos.
 
-    TODO: orquestar `src.comun.datos.{cargar_crudo, validar_esquema,
-        construir_caracteristicas, particionar, hash_dataframe}`.
+    Sella dos hashes distintos: el del crudo tal como se leyó y el del cuadro
+    de características. El datasheet declara ambos, así que un auditor puede
+    comprobar por separado que los datos de origen y la preparación son los
+    mismos que produjeron los resultados.
+
+    Raises:
+        EsquemaDatosInvalido: si el crudo no cumple el esquema declarado.
+        FormatoNoReconocido: si `datos.formato` no tiene lector.
     """
-    raise NotImplementedError
+    config = ctx.config
+    eventos = cargar_crudo(config)
+    validar_esquema(eventos, config)
+    caracteristicas = construir_caracteristicas(eventos, config)
+    particion = particionar(caracteristicas, config)
+
+    ctx = replace(
+        ctx,
+        caracteristicas=caracteristicas,
+        particion=particion,
+        n_eventos_crudos=len(eventos),
+        hash_datos_crudos=hash_dataframe(eventos),
+        hash_datos=hash_dataframe(caracteristicas),
+    )
+    return registrar_evento(
+        ctx,
+        "precondicion_preparar_datos",
+        eventos_crudos=len(eventos),
+        ventanas=len(caracteristicas),
+        ventanas_entrenamiento=len(particion.X_entrenamiento),
+        ventanas_prueba=len(particion.X_prueba),
+        hash_datos_crudos=ctx.hash_datos_crudos,
+        hash_datos=ctx.hash_datos,
+    )
 
 
 def precondicion_sellar_modelo(ctx: ContextoEjecucion) -> ContextoEjecucion:
@@ -77,9 +160,27 @@ def precondicion_sellar_modelo(ctx: ContextoEjecucion) -> ContextoEjecucion:
     parámetros + hash de datos + ruta serializada), y su desempeño NO se
     optimiza en función de los resultados de las pruebas posteriores.
 
-    TODO: delegar en `src.comun.modelado.{cargar_sellado, entrenar}`.
+    Raises:
+        PrecondicionIncumplida: si los datos no se prepararon antes.
     """
-    raise NotImplementedError
+    if ctx.particion is None:
+        raise PrecondicionIncumplida(
+            "no hay partición: `precondicion_preparar_datos` debe correr antes "
+            "de sellar el modelo"
+        )
+    modelo = entrenar(
+        ctx.particion.X_entrenamiento, ctx.particion.y_entrenamiento, ctx.config
+    )
+    ctx = replace(ctx, modelo=modelo)
+    return registrar_evento(
+        ctx,
+        "precondicion_sellar_modelo",
+        tipo=ctx.config.modelo.tipo,
+        version=modelo.version,
+        hash_parametros=modelo.hash_parametros,
+        hash_datos_entrenamiento=modelo.hash_datos_entrenamiento,
+        ruta_serializado=str(modelo.ruta_serializado),
+    )
 
 
 PRECONDICIONES = (
@@ -102,11 +203,18 @@ def paso_1_caracterizacion_sistema(ctx: ContextoEjecucion) -> ContextoEjecucion:
     Función NIST AI RMF: MAPEAR.
     Requerimientos: insumo de R5.2 (propósito y condiciones de uso).
 
-    TODO: rellenar `plantillas/ficha_caracterizacion.md` desde `config` y el
-        `ModeloSellado`; delegar en
-        `src.procedimiento.evidencia.generar_ficha_caracterizacion`.
+    El texto descriptivo proviene del bloque `sistema` de `config.yaml`: el
+    marco no sabe qué sistema audita, solo exige que esté declarado (D46).
+
+    Raises:
+        EvidenciaIncompleta: si el modelo todavía no está sellado.
     """
-    raise NotImplementedError
+    return _registrar_artefacto(
+        ctx,
+        "paso_1_caracterizacion_sistema",
+        "ficha_caracterizacion",
+        generar_ficha_caracterizacion(ctx),
+    )
 
 
 def paso_2_documentacion_datos(ctx: ContextoEjecucion) -> ContextoEjecucion:
@@ -118,9 +226,19 @@ def paso_2_documentacion_datos(ctx: ContextoEjecucion) -> ContextoEjecucion:
     Función NIST AI RMF: MAPEAR.
     Requerimientos: R4.3.
 
-    TODO: delegar en `src.procedimiento.evidencia.generar_datasheet`.
+    La composición (número de instancias, clases, distribución, hashes) sale
+    de los datos ya preparados; la procedencia y las condiciones de uso, del
+    bloque `datos.documentacion` de `config.yaml`.
+
+    Raises:
+        EvidenciaIncompleta: si los datos todavía no se prepararon.
     """
-    raise NotImplementedError
+    return _registrar_artefacto(
+        ctx,
+        "paso_2_documentacion_datos",
+        "datasheet",
+        generar_datasheet(ctx),
+    )
 
 
 def paso_3_declaracion_criterios(ctx: ContextoEjecucion) -> ContextoEjecucion:
@@ -215,6 +333,10 @@ def paso_6_verificacion_auditabilidad(ctx: ContextoEjecucion) -> ContextoEjecuci
     raise NotImplementedError
 
 
+class PrecondicionIncumplida(RuntimeError):
+    """Un paso se invocó sin que su precondición hubiera corrido."""
+
+
 PASOS = (
     paso_1_caracterizacion_sistema,
     paso_2_documentacion_datos,
@@ -223,5 +345,3 @@ PASOS = (
     paso_5_generacion_artefactos,
     paso_6_verificacion_auditabilidad,
 )
-
-_ = replace  # usado por los TODO de cada paso

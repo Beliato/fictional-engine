@@ -17,7 +17,7 @@ Dos reglas gobiernan este módulo:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -63,6 +63,39 @@ class ConfigActividades:
 
 
 @dataclass(frozen=True)
+class ConfigSistema:
+    """Descripción del sistema auditado, en texto libre.
+
+    Son afirmaciones del despliegue, no del marco: el código las copia a la
+    ficha de caracterización sin interpretarlas (D46).
+    """
+
+    nombre: str
+    finalidad: str
+    poblacion_destinataria: str
+    tarea_aprendizaje: str
+    contexto_sensores: str
+    contexto_despliegue: str
+    personas_afectadas: str
+    delimitacion: str
+
+
+@dataclass(frozen=True)
+class DocumentacionDatos:
+    """Procedencia y condiciones de uso del dataset, para el datasheet."""
+
+    creador: str
+    motivacion: str
+    mecanismo_recoleccion: str
+    consentimiento: str
+    datos_personales: str
+    uso_en_proyecto: str
+    usos_no_recomendados: str
+    licencia: str
+    instrucciones_descarga: str
+
+
+@dataclass(frozen=True)
 class ConfigDatos:
     fuente: str
     archivo_crudo: Path
@@ -76,6 +109,7 @@ class ConfigDatos:
     franjas_horarias: tuple[FranjaHoraria, ...]
     ventana: ConfigVentana
     particion: ParticionDatos
+    documentacion: DocumentacionDatos
 
     def zona_de(self, sensor: str) -> str | None:
         """Zona del hogar donde está `sensor`, o None si no está mapeado."""
@@ -181,6 +215,7 @@ class Configuracion:
     pythonhashseed: int
     n_jobs: int
     rutas: Rutas
+    sistema: ConfigSistema
     datos: ConfigDatos
     modelo: ConfigModelo
     explicabilidad: ConfigExplicabilidad
@@ -257,6 +292,22 @@ def _lista_de_textos(valor: Any, contexto: str) -> tuple[str, ...]:
     elementos = _tipo(valor, list, contexto)
     return tuple(
         _texto_no_vacio(e, f"{contexto}[{i}]") for i, e in enumerate(elementos)
+    )
+
+
+def _bloque_de_textos(crudo: Any, tipo: type, contexto: str) -> Any:
+    """Lee un bloque cuyos campos son todos texto libre obligatorio.
+
+    Los campos salen de la dataclass destino, así que agregar un campo al
+    artefacto es agregarlo en un solo lugar. Un texto vacío se rechaza: un
+    apartado en blanco en la ficha o el datasheet se lee como "no aplica"
+    cuando en realidad significa "nadie lo escribió".
+    """
+    bloque = _exigir_mapa(crudo, contexto)
+    campos = tuple(campo.name for campo in fields(tipo))
+    _claves(bloque, set(campos), contexto)
+    return tipo(
+        **{c: _texto_no_vacio(bloque[c], f"{contexto}.{c}") for c in campos}
     )
 
 
@@ -366,6 +417,7 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
             "franjas_horarias",
             "ventana",
             "particion",
+            "documentacion",
         },
         "datos",
     )
@@ -455,6 +507,9 @@ def _leer_datos(crudo: dict[str, Any], raiz: Path) -> ConfigDatos:
         ),
         ventana=ConfigVentana(n_eventos=n_eventos),
         particion=ParticionDatos(estrategia=estrategia, test_size=test_size),
+        documentacion=_bloque_de_textos(
+            bloque["documentacion"], DocumentacionDatos, "datos.documentacion"
+        ),
     )
 
 
@@ -692,6 +747,7 @@ def cargar_configuracion(ruta: str | Path = "config.yaml") -> Configuracion:
             "semilla",
             "determinismo",
             "rutas",
+            "sistema",
             "datos",
             "modelo",
             "explicabilidad",
@@ -737,6 +793,7 @@ def cargar_configuracion(ruta: str | Path = "config.yaml") -> Configuracion:
         ),
         n_jobs=n_jobs,
         rutas=_leer_rutas(crudo["rutas"], raiz),
+        sistema=_bloque_de_textos(crudo["sistema"], ConfigSistema, "sistema"),
         datos=_leer_datos(crudo["datos"], raiz),
         modelo=_leer_modelo(crudo["modelo"]),
         explicabilidad=_leer_explicabilidad(crudo["explicabilidad"]),
