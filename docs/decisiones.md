@@ -40,9 +40,17 @@ Python 3.11. Conjunto NumPy 1.26.4 / pandas 2.2.2 / scikit-learn 1.4.2 /
 shap 0.45.1 / matplotlib 3.8.4 / pyyaml 6.0.1 / pytest 8.2.0 (`fairlearn`
 0.10.0 figuraba al principio y se retiró en D45).
 Elegido por compatibilidad mutua conocida (NumPy < 2 evita fricción con shap).
-**Revisar y confirmar** ejecutando `make setup && make lock`: `requirements.lock`
-con el cierre transitivo es lo que hace el entorno realmente reproducible.
-Considere además `pip install --require-hashes` sobre el lock para blindarlo.
+**Resuelto.** `requirements.lock` se generó con `make lock`: 28 paquetes con
+el cierre transitivo completo. Antes de congelarlo se desinstaló `fairlearn`
+del entorno, que seguía instalado de cuando era dependencia (D45): un lock que
+congela un paquete que el proyecto ya no declara no prueba nada sobre el
+entorno que corrió.
+
+El lock fija `pyparsing` 3.3.2, la versión cuya deprecación obliga al filtro
+de `pyproject.toml` (D10). Con el cierre congelado, ese filtro deja de ser un
+parche contra una versión que flota y pasa a documentar una versión concreta.
+**Revisar:** `pip install --require-hashes` sobre el lock lo blindaría contra
+sustituciones en el índice de paquetes.
 
 ## D5 — Bitácora en JSONL append-only
 Una línea por inferencia, nunca se reescribe. Formato consultable con
