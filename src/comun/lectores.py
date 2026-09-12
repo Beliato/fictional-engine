@@ -15,6 +15,17 @@ estas columnas, ordenado por tiempo:
     valor          : str          estado reportado (ON/OFF, OPEN/CLOSE, 21.5…)
     actividad      : str          etiqueta vigente en ese instante
 
+Y una quinta columna **opcional**:
+
+    hogar          : str          vivienda de la que provino el evento
+
+`hogar` aparece cuando el dataset cubre varias viviendas. No es una
+característica del modelo: es una clave de agrupación —las ventanas nunca
+cruzan hogares y la partición temporal se hace dentro de cada uno— y una
+columna sensible para el análisis desagregado. Cada vivienda es una persona
+distinta, así que comparar entre hogares es comparar entre la población
+monitoreada, que es lo que pide el R4.1.
+
 Todo lo que va aguas abajo —ventanas, conteos por zona, partición temporal,
 modelo, atribución SHAP, equidad, bitácora— opera sobre esa forma y no sabe
 de dónde salió. Y la forma no es una abstracción inventada: **todo sistema de
@@ -48,6 +59,9 @@ if TYPE_CHECKING:
 
 # Las cuatro columnas del contrato, en orden.
 COLUMNAS_EVENTOS = ("marca_temporal", "sensor", "valor", "actividad")
+
+#: Columna opcional del contrato: vivienda de origen del evento.
+COLUMNA_HOGAR = "hogar"
 
 
 class LectorEventos(ABC):
@@ -162,11 +176,141 @@ class LectorEventosCASAS(LectorEventos):
         return eventos
 
 
+class LectorEventosCASASCSV(LectorEventos):
+    """Lector del release de CASAS publicado en Zenodo (CSV, varias viviendas).
+
+    Un evento por línea, campos separados por coma, con los sensores ya
+    nombrados por habitación. La anotación de actividad abre y cierra
+    intervalos con una sintaxis propia:
+
+        2012-07-20,10:38:54.512364,OutsideDoor,ON,Step_Out="begin"
+        2012-07-20,10:38:59.541365,OutsideDoor,OFF
+        2012-07-20,10:39:36.167078,Bedroom,ON,Sleep
+
+    El quinto campo puede traer `Actividad="begin"`, `Actividad="end"` o el
+    nombre a secas para los eventos interiores del intervalo.
+
+    `datos.archivo_crudo` puede apuntar a un archivo o a un **directorio**: en
+    ese caso se leen todos sus `.csv` en orden y el nombre de cada archivo
+    pasa a la columna `hogar`.
+
+    Un detalle propio de este formato: un mismo nombre de sensor puede ser de
+    movimiento y de puerta a la vez (`OutsideDoor` reporta ON/OFF y también
+    OPEN/CLOSE). Como el marco distingue los sensores por nombre, los eventos
+    de puerta se renombran a `<sensor>_Puerta`. La ambigüedad es del dataset y
+    se resuelve acá, que es donde vive lo propio de cada formato.
+    """
+
+    nombre = "casas_csv"
+    formato = "CSV de CASAS (Zenodo), una o varias viviendas anotadas por spans"
+
+    #: Valores que identifican un evento de puerta y no de movimiento.
+    VALORES_PUERTA = ("OPEN", "CLOSE")
+
+    #: Sufijo con el que se desdobla un sensor que también es puerta.
+    SUFIJO_PUERTA = "_Puerta"
+
+    def leer(self, config: "Configuracion") -> pd.DataFrame:
+        ruta = Path(config.datos.archivo_crudo)
+        archivos = self._archivos(ruta)
+        etiqueta_vacia = config.datos.actividades.etiqueta_sin_actividad
+
+        marcos = []
+        descartadas = 0
+        for archivo in archivos:
+            eventos, sin_parsear = self._leer_uno(archivo, etiqueta_vacia)
+            descartadas += sin_parsear
+            if not eventos.empty:
+                marcos.append(eventos)
+
+        if not marcos:
+            raise FormatoNoReconocido(
+                f"{ruta}: no se encontró ningún evento legible. ¿Es la ruta "
+                f"correcta, y corresponde al formato {self.nombre!r}?"
+            )
+
+        eventos = pd.concat(marcos, ignore_index=True)
+        # Orden estable dentro de cada hogar: el contrato lo exige y la
+        # ventana y la partición dependen de él.
+        eventos = eventos.sort_values(
+            [COLUMNA_HOGAR, "marca_temporal"], kind="stable"
+        ).reset_index(drop=True)
+        eventos.attrs["lineas_descartadas"] = descartadas
+        eventos.attrs["hogares"] = sorted(eventos[COLUMNA_HOGAR].unique())
+        return eventos[[*COLUMNAS_EVENTOS, COLUMNA_HOGAR]]
+
+    def _archivos(self, ruta: Path) -> list[Path]:
+        if ruta.is_dir():
+            archivos = sorted(ruta.glob("*.csv"))
+            if not archivos:
+                raise FileNotFoundError(f"no hay archivos .csv en {ruta}")
+            return archivos
+        if ruta.is_file():
+            return [ruta]
+        raise FileNotFoundError(f"no existe el archivo crudo: {ruta}")
+
+    def _leer_uno(
+        self, archivo: Path, etiqueta_vacia: str
+    ) -> "tuple[pd.DataFrame, int]":
+        marcas: list[str] = []
+        sensores: list[str] = []
+        valores: list[str] = []
+        actividades: list[str] = []
+        abierta = etiqueta_vacia
+        descartadas = 0
+
+        with archivo.open("r", encoding="utf-8", errors="replace") as f:
+            for linea in f:
+                campos = linea.rstrip("\n").split(",")
+                if len(campos) < 4 or not campos[0] or not campos[2]:
+                    if linea.strip():
+                        descartadas += 1
+                    continue
+                fecha, hora, sensor, valor = (c.strip() for c in campos[:4])
+                if valor.upper() in self.VALORES_PUERTA:
+                    sensor = f"{sensor}{self.SUFIJO_PUERTA}"
+                marcas.append(f"{fecha} {hora}")
+                sensores.append(sensor)
+                valores.append(valor)
+
+                anotacion = campos[4].strip() if len(campos) > 4 else ""
+                nombre, marca = self._anotacion(anotacion)
+                if not nombre:
+                    actividades.append(abierta)
+                elif marca == "begin":
+                    abierta = nombre
+                    actividades.append(nombre)
+                elif marca == "end":
+                    actividades.append(nombre)
+                    abierta = etiqueta_vacia
+                else:
+                    actividades.append(nombre)
+
+        eventos = pd.DataFrame(
+            {
+                "marca_temporal": pd.to_datetime(marcas, format="mixed"),
+                "sensor": sensores,
+                "valor": valores,
+                "actividad": actividades,
+                COLUMNA_HOGAR: archivo.stem,
+            }
+        )
+        return eventos, descartadas
+
+    def _anotacion(self, campo: str) -> "tuple[str, str]":
+        """Descompone `Actividad="begin"` en (actividad, marca)."""
+        if not campo:
+            return "", ""
+        nombre, _, resto = campo.partition("=")
+        return nombre.strip(), resto.strip().strip(chr(34)).lower()
+
+
 #: Lectores disponibles, por el nombre con que se declaran en `config.yaml`.
 #: Registrar uno nuevo aquí es todo lo que hace falta para que el marco
 #: acepte otro formato; ningún otro módulo cambia.
 LECTORES: dict[str, type[LectorEventos]] = {
     LectorEventosCASAS.nombre: LectorEventosCASAS,
+    LectorEventosCASASCSV.nombre: LectorEventosCASASCSV,
 }
 
 
@@ -216,10 +360,12 @@ def _verificar_contrato(eventos: object, lector: LectorEventos) -> None:
             f"{quien}: debía devolver un DataFrame, devolvió "
             f"{type(eventos).__name__}"
         )
-    if tuple(eventos.columns) != COLUMNAS_EVENTOS:
+    admitidas = (COLUMNAS_EVENTOS, (*COLUMNAS_EVENTOS, COLUMNA_HOGAR))
+    if tuple(eventos.columns) not in admitidas:
         raise ContratoIncumplido(
-            f"{quien}: las columnas deben ser exactamente "
-            f"{list(COLUMNAS_EVENTOS)}, se recibió {list(eventos.columns)}"
+            f"{quien}: las columnas deben ser {list(COLUMNAS_EVENTOS)}, "
+            f"opcionalmente seguidas de {COLUMNA_HOGAR!r}; se recibió "
+            f"{list(eventos.columns)}"
         )
     if eventos.empty:
         raise ContratoIncumplido(f"{quien}: no devolvió ningún evento")
@@ -231,10 +377,34 @@ def _verificar_contrato(eventos: object, lector: LectorEventos) -> None:
     for columna in ("sensor", "valor", "actividad"):
         if eventos[columna].isna().any():
             raise ContratoIncumplido(f"{quien}: {columna} contiene nulos")
-    if not eventos["marca_temporal"].is_monotonic_increasing:
+    if COLUMNA_HOGAR not in eventos.columns:
+        if not eventos["marca_temporal"].is_monotonic_increasing:
+            raise ContratoIncumplido(
+                f"{quien}: los eventos deben venir ordenados por "
+                "marca_temporal; la ventana y la partición temporal dependen "
+                "de ese orden"
+            )
+        return
+
+    if eventos[COLUMNA_HOGAR].isna().any():
+        raise ContratoIncumplido(f"{quien}: {COLUMNA_HOGAR} contiene nulos")
+    # Con varias viviendas el orden global no significa nada: lo que la
+    # ventana y la partición necesitan es orden dentro de cada hogar, y que
+    # cada hogar venga en un bloque contiguo.
+    bloques = int((eventos[COLUMNA_HOGAR] != eventos[COLUMNA_HOGAR].shift()).sum())
+    if bloques != eventos[COLUMNA_HOGAR].nunique():
         raise ContratoIncumplido(
-            f"{quien}: los eventos deben venir ordenados por marca_temporal; "
-            "la ventana y la partición temporal dependen de ese orden"
+            f"{quien}: los eventos de cada hogar deben venir juntos; hay "
+            f"{bloques} bloques para {eventos[COLUMNA_HOGAR].nunique()} hogares"
+        )
+    ordenado = (
+        eventos.groupby(COLUMNA_HOGAR, sort=False)["marca_temporal"]
+        .is_monotonic_increasing.all()
+    )
+    if not ordenado:
+        raise ContratoIncumplido(
+            f"{quien}: dentro de cada hogar los eventos deben venir ordenados "
+            "por marca_temporal"
         )
 
 

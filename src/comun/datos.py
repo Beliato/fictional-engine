@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from src.comun.lectores import leer_eventos
+from src.comun.lectores import COLUMNA_HOGAR, leer_eventos
 from src.comun.utilidades import hash_sha256
 
 if TYPE_CHECKING:
@@ -88,7 +88,16 @@ def validar_esquema(df: "pd.DataFrame", config: "Configuracion") -> None:
         if df[columna].isna().any():
             raise EsquemaDatosInvalido(f"{columna}: contiene nulos")
 
-    if not df["marca_temporal"].is_monotonic_increasing:
+    if COLUMNA_HOGAR in df.columns and df[COLUMNA_HOGAR].isna().any():
+        raise EsquemaDatosInvalido(f"{COLUMNA_HOGAR}: contiene nulos")
+
+    ordenado = (
+        df.groupby(COLUMNA_HOGAR, sort=False)["marca_temporal"]
+        .is_monotonic_increasing.all()
+        if COLUMNA_HOGAR in df.columns
+        else df["marca_temporal"].is_monotonic_increasing
+    )
+    if not ordenado:
         raise EsquemaDatosInvalido(
             "marca_temporal: los eventos no están ordenados en el tiempo; la "
             "partición temporal y la ventana dependen de ese orden"
@@ -173,7 +182,17 @@ def construir_caracteristicas(
 
     trabajo = df.copy()
     trabajo["zona"] = trabajo["sensor"].map(zonas)
-    trabajo["ventana"] = trabajo.index // n
+    # Con varias viviendas las ventanas se forman dentro de cada una: una
+    # ventana que cruzara hogares mezclaría a dos personas en una sola fila.
+    # El identificador lleva el hogar y la posición con ceros a la izquierda
+    # para que el orden siga siendo el cronológico dentro de cada vivienda.
+    if COLUMNA_HOGAR in trabajo.columns:
+        posicion = trabajo.groupby(COLUMNA_HOGAR).cumcount() // n
+        trabajo["ventana"] = (
+            trabajo[COLUMNA_HOGAR] + "|" + posicion.map(lambda i: f"{i:08d}")
+        )
+    else:
+        trabajo["ventana"] = trabajo.index // n
     # La última ventana se descarta si quedó incompleta: una ventana corta
     # tendría conteos sistemáticamente menores y sería una fila distinta a
     # todas las demás.
@@ -229,6 +248,8 @@ def construir_caracteristicas(
         lambda d: "fin_de_semana" if d >= 5 else "laborable"
     )
     caracteristicas["fecha"] = marca.dt.date
+    if COLUMNA_HOGAR in trabajo.columns:
+        caracteristicas[COLUMNA_HOGAR] = ultimo[COLUMNA_HOGAR]
     caracteristicas[config.datos.columna_objetivo] = ultimo["actividad"]
     caracteristicas = caracteristicas.reset_index(drop=True)
 
@@ -250,7 +271,10 @@ def columnas_caracteristicas(
     caracteristicas: "pd.DataFrame", config: "Configuracion"
 ) -> list[str]:
     """Columnas que ve el modelo: ni la etiqueta ni las sensibles ni la fecha."""
-    excluidas = {config.datos.columna_objetivo, "fecha"} | {
+    # `hogar` nunca es característica: es clave de agrupación y columna
+    # sensible. Que el modelo aprenda a distinguir viviendas sería justamente
+    # lo que el análisis desagregado quiere poder descartar.
+    excluidas = {config.datos.columna_objetivo, "fecha", COLUMNA_HOGAR} | {
         s.columna for s in config.equidad.subgrupos
     }
     return [c for c in caracteristicas.columns if c not in excluidas]
@@ -282,17 +306,16 @@ def particionar(
             "implementada; use 'temporal_por_dia'"
         )
 
-    dias = sorted(df["fecha"].unique())
-    if len(dias) < 2:
-        raise EsquemaDatosInvalido(
-            f"se necesitan al menos 2 días distintos para partir por día, "
-            f"hay {len(dias)}"
-        )
-    n_prueba = max(1, round(len(dias) * config.datos.particion.test_size))
-    n_prueba = min(n_prueba, len(dias) - 1)
-    dias_prueba = set(dias[-n_prueba:])
-
-    es_prueba = df["fecha"].isin(dias_prueba)
+    if COLUMNA_HOGAR in df.columns:
+        # Cada vivienda se parte por sus propios días: así todas aparecen en
+        # entrenamiento y en prueba, y el desempeño por hogar es comparable.
+        es_prueba = pd.Series(False, index=df.index)
+        for hogar, grupo in df.groupby(COLUMNA_HOGAR, sort=True):
+            dias_prueba = _dias_de_prueba(sorted(grupo["fecha"].unique()), config, hogar)
+            es_prueba |= (df[COLUMNA_HOGAR] == hogar) & df["fecha"].isin(dias_prueba)
+    else:
+        dias_prueba = _dias_de_prueba(sorted(df["fecha"].unique()), config, None)
+        es_prueba = df["fecha"].isin(dias_prueba)
     columnas = columnas_caracteristicas(df, config)
     sensibles = [s.columna for s in config.equidad.subgrupos]
     objetivo = config.datos.columna_objetivo
@@ -311,6 +334,26 @@ def particionar(
         sensibles_entrenamiento=entrenamiento[sensibles].reset_index(drop=True),
         sensibles_prueba=prueba[sensibles].reset_index(drop=True),
     )
+
+
+def _dias_de_prueba(
+    dias: list, config: "Configuracion", hogar: str | None
+) -> set:
+    """Últimos días del período que van a prueba.
+
+    Raises:
+        EsquemaDatosInvalido: si no hay al menos dos días distintos que
+            partir.
+    """
+    if len(dias) < 2:
+        de_quien = f" del hogar {hogar}" if hogar else ""
+        raise EsquemaDatosInvalido(
+            f"se necesitan al menos 2 días distintos para partir por día{de_quien}, "
+            f"hay {len(dias)}"
+        )
+    n_prueba = max(1, round(len(dias) * config.datos.particion.test_size))
+    n_prueba = min(n_prueba, len(dias) - 1)
+    return set(dias[-n_prueba:])
 
 
 def hash_dataframe(df: "pd.DataFrame") -> str:
