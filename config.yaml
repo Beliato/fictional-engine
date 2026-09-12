@@ -320,8 +320,11 @@ equidad:
       Aruba tiene una sola residente, así que no existen subgrupos
       poblacionales: los dos subgrupos evaluados son contextuales. Miden si el
       sistema funciona igual de bien en distintas condiciones, no si
-      discrimina entre personas, y satisfacen el R4.1 solo en parte. Cerrar
-      esa brecha exige datos anotados de varios hogares (Milan, Cairo, Tulum).
+      discrimina entre personas, y satisfacen el R4.1 solo en parte. La brecha
+      se cierra en el segundo piloto (`config.hogares.yaml`), que corre sobre
+      nueve viviendas de la serie hh del depósito oficial de CASAS y compara
+      personas. Los demás hogares de ese depósito se publican sin etiquetas de
+      actividad, así que no sirven para clasificación supervisada.
     - >-
       La franja horaria se deriva de la hora, que es además una variable de
       entrada del modelo: parte de la disparidad entre franjas es por diseño,
