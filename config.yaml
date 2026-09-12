@@ -162,6 +162,9 @@ datos:
     # `Respirate` tiene 6 instancias en todo el dataset. Con seis ejemplos no
     # se puede partir ni evaluar de forma sensata.
     excluidas: [Respirate]
+    # Agrupa variantes de un mismo quehacer. Aruba ya trae las etiquetas
+    # agrupadas, así que acá está vacío.
+    mapeo: {}
 
   # Documentación del dataset para el datasheet del paso 2 (Gebru et al.,
   # 2021). Es propia del dataset, no del marco: el código la copia tal cual.

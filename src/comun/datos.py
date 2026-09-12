@@ -253,6 +253,15 @@ def construir_caracteristicas(
     caracteristicas[config.datos.columna_objetivo] = ultimo["actividad"]
     caracteristicas = caracteristicas.reset_index(drop=True)
 
+    # El mapeo agrupa variantes de un mismo quehacer antes de excluir nada:
+    # así `excluidas` se declara sobre las clases que el modelo verá.
+    mapeo = config.datos.actividades.mapeo
+    if mapeo:
+        objetivo = config.datos.columna_objetivo
+        caracteristicas[objetivo] = caracteristicas[objetivo].map(
+            lambda etiqueta: mapeo.get(etiqueta, etiqueta)
+        )
+
     excluidas = set(config.datos.actividades.excluidas)
     if excluidas:
         caracteristicas = caracteristicas[
