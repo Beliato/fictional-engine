@@ -124,8 +124,8 @@ def generar_reporte_explicabilidad(
         "semilla": str(config.semilla),
         "ejemplos_por_tipo": str(config.explicabilidad.ejemplos_por_tipo),
         "ruta_figura_resumen": _relativa(global_.ruta_figura_resumen, destino),
-        "tabla_importancia_global": _tabla_importancia(global_),
-        "figuras_dependencia": _figuras_dependencia(global_, destino),
+        "tabla_importancia_global": _tabla_importancia(global_, config),
+        "figuras_dependencia": _figuras_dependencia(global_, destino, config),
         "ejemplos_locales": _ejemplos(aciertos, errores, y_real, config),
         "notas_interpretacion": _NOTAS,
     }
@@ -144,24 +144,29 @@ def _con_signo(valor: float) -> str:
     return ("+" if valor > 0 else "") + formatear_decimal(valor)
 
 
-def _tabla_importancia(global_: "ExplicacionGlobal") -> str:
+def _tabla_importancia(
+    global_: "ExplicacionGlobal", config: "Configuracion"
+) -> str:
+    nombres_zona = config.datos.nombres_zona
     filas = [
         "| # | Característica | Nombre técnico | Contribución media absoluta |",
         "|---:|---|---|---:|",
     ]
     for i, (nombre, valor) in enumerate(global_.importancia_media_abs.items(), 1):
         filas.append(
-            f"| {i} | {etiqueta_caracteristica(nombre)} | `{nombre}` | "
+            f"| {i} | {etiqueta_caracteristica(nombre, nombres_zona)} | `{nombre}` | "
             f"{formatear_decimal(valor, 4)} |"
         )
     return "\n".join(filas)
 
 
-def _figuras_dependencia(global_: "ExplicacionGlobal", destino: Path) -> str:
+def _figuras_dependencia(
+    global_: "ExplicacionGlobal", destino: Path, config: "Configuracion"
+) -> str:
     if not global_.rutas_dependencias:
         return "_Sin características destacadas._"
     return "\n\n".join(
-        f"![Dependencia de {etiqueta_caracteristica(nombre)}]"
+        f"![Dependencia de {etiqueta_caracteristica(nombre, config.datos.nombres_zona)}]"
         f"({_relativa(ruta, destino)})"
         for nombre, ruta in global_.rutas_dependencias.items()
     )
@@ -183,7 +188,7 @@ def _ejemplo(
     ]
     for nombre, contribucion in explicacion.caracteristicas_top(k):
         lineas.append(
-            f"| {etiqueta_caracteristica(nombre)} | "
+            f"| {etiqueta_caracteristica(nombre, config.datos.nombres_zona)} | "
             f"{formatear_valor(nombre, explicacion.valores[nombre])} | "
             f"{_con_signo(contribucion)} |"
         )

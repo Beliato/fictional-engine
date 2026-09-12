@@ -153,13 +153,16 @@ def calcular_importancia_global(
 
     k = config.explicabilidad.caracteristicas_destacadas
     ruta_resumen = destino / "importancia_global.png"
-    _dibujar_importancia(importancia, len(explicaciones), k, ruta_resumen)
+    nombres_zona = config.datos.nombres_zona
+    _dibujar_importancia(
+        importancia, len(explicaciones), k, ruta_resumen, nombres_zona
+    )
 
     muestra = muestrear_para_graficos(explicaciones, config)
     rutas_dependencias: dict[str, Path] = {}
     for caracteristica in list(importancia)[:k]:
         ruta = destino / f"dependencia_{caracteristica}.png"
-        _dibujar_dependencia(caracteristica, muestra, ruta)
+        _dibujar_dependencia(caracteristica, muestra, ruta, nombres_zona)
         rutas_dependencias[caracteristica] = ruta
 
     return ExplicacionGlobal(
@@ -247,7 +250,11 @@ def _estilo_ejes(ejes, grilla: str) -> None:
 
 
 def _dibujar_importancia(
-    importancia: dict[str, float], n: int, destacadas: int, ruta: Path
+    importancia: dict[str, float],
+    n: int,
+    destacadas: int,
+    ruta: Path,
+    nombres_zona: "dict[str, str] | None" = None,
 ) -> None:
     nombres = list(importancia)
     valores = np.array(list(importancia.values()))
@@ -286,7 +293,10 @@ def _dibujar_importancia(
 
     ejes.set_yticks(range(n_barras))
     ejes.set_yticklabels(
-        [etiqueta_caracteristica(nombres[n_barras - 1 - y]) for y in range(n_barras)]
+        [
+            etiqueta_caracteristica(nombres[n_barras - 1 - y], nombres_zona)
+            for y in range(n_barras)
+        ]
     )
     ejes.tick_params(axis="y", colors=_TINTA_SECUNDARIA, labelsize=8.5)
     ejes.xaxis.set_major_formatter(FuncFormatter(lambda v, _: formatear_decimal(v, 2)))
@@ -302,11 +312,14 @@ def _dibujar_importancia(
 
 
 def _dibujar_dependencia(
-    caracteristica: str, muestra: "list[ExplicacionLocal]", ruta: Path
+    caracteristica: str,
+    muestra: "list[ExplicacionLocal]",
+    ruta: Path,
+    nombres_zona: "dict[str, str] | None" = None,
 ) -> None:
     x = np.array([e.valores[caracteristica] for e in muestra])
     y = np.array([e.contribuciones[caracteristica] for e in muestra])
-    etiqueta = etiqueta_caracteristica(caracteristica)
+    etiqueta = etiqueta_caracteristica(caracteristica, nombres_zona)
 
     alto = 4.6
     figura = _figura(alto)

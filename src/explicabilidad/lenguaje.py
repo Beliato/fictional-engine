@@ -53,10 +53,18 @@ def _duracion(segundos: float) -> str:
     return f"{horas} h" + (f" {minutos} min" if minutos else "")
 
 
-def etiqueta_caracteristica(nombre: str) -> str:
-    """Nombre corto y legible de una característica, para ejes y tablas."""
+def etiqueta_caracteristica(
+    nombre: str, nombres_zona: "dict[str, str] | None" = None
+) -> str:
+    """Nombre corto y legible de una característica, para ejes y tablas.
+
+    `nombres_zona` traduce el identificador de zona al idioma de las personas
+    destinatarias (`config.datos.nombres_zona`). Una zona sin traducción se
+    muestra con su identificador: es preferible a ocultar que falta.
+    """
     if nombre.startswith("conteo_"):
-        return f"Movimiento en {nombre.removeprefix('conteo_')}"
+        zona = nombre.removeprefix("conteo_")
+        return f"Movimiento en {(nombres_zona or {}).get(zona, zona)}"
     if nombre.startswith("temp_"):
         return f"Temperatura {nombre.removeprefix('temp_')}"
     return {
@@ -67,10 +75,13 @@ def etiqueta_caracteristica(nombre: str) -> str:
     }.get(nombre, nombre)
 
 
-def describir_caracteristica(nombre: str, valor: float) -> str:
+def describir_caracteristica(
+    nombre: str, valor: float, nombres_zona: "dict[str, str] | None" = None
+) -> str:
     """Frase que describe el valor observado de una característica."""
     if nombre.startswith("conteo_"):
         zona = nombre.removeprefix("conteo_")
+        zona = (nombres_zona or {}).get(zona, zona)
         n = int(round(valor))
         return f"{_plural(n, 'activación', 'activaciones')} de movimiento en {zona}"
     if nombre.startswith("temp_"):
@@ -129,13 +140,14 @@ def redactar_explicacion(
     """
     k = config.explicabilidad.caracteristicas_destacadas
     destacadas = explicacion.caracteristicas_top(k)
+    nombres_zona = config.datos.nombres_zona
     a_favor = [
-        describir_caracteristica(n, explicacion.valores[n])
+        describir_caracteristica(n, explicacion.valores[n], nombres_zona)
         for n, c in destacadas
         if c > 0
     ]
     en_contra = [
-        describir_caracteristica(n, explicacion.valores[n])
+        describir_caracteristica(n, explicacion.valores[n], nombres_zona)
         for n, c in destacadas
         if c < 0
     ]

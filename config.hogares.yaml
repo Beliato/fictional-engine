@@ -123,6 +123,20 @@ datos:
     OutsideDoor_Puerta: OutsideDoor
     WorkArea: WorkArea
 
+  # Nombre de cada zona en el idioma de las personas destinatarias. La ENIA
+  # exige sistemas cultural y lingüísticamente apropiados (p. 32), y el R3.3
+  # exige información comprensible: "LoungeChair" no lo es para una cuidadora
+  # hispanohablante. Solo cambia lo que se muestra; los datos, las columnas y
+  # los nombres técnicos siguen igual (D54).
+  nombres_zona:
+    Bathroom: el baño
+    Bedroom: el dormitorio
+    DiningRoom: el comedor
+    Kitchen: la cocina
+    LivingRoom: la sala
+    LoungeChair: el sillón
+    OutsideDoor: la puerta de salida
+    WorkArea: el área de trabajo
   actividades:
     etiqueta_sin_actividad: Otro
     # `Nap` tiene 6 eventos y `Exercise` 9 en todo el conjunto. Con esa
