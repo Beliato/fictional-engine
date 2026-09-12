@@ -146,8 +146,16 @@ commit con el árbol sucio no identifica el código que corrió.
 | ¿El marco sirve para otro dataset? | `docs/aplicar-a-otro-dataset.md`: hay que escribir un lector |
 | ¿Se puede repetir esta corrida? | Bloque final del `reporte_cumplimiento.md` |
 
-## Mostrar el expediente del piloto completo
+## Mostrar los expedientes completos
 
-Los artefactos de la corrida sobre los 220 días están en `artefactos/`, con la
-misma estructura. La demo sirve para mostrar el **proceso**; el piloto, para
-mostrar los **resultados** que van en la tesis.
+Hay dos, con la misma estructura que la demo:
+
+- `artefactos/` — piloto sobre Aruba, una residente, 220 días, 11.175
+  inferencias. Subgrupos contextuales.
+- `artefactos/hogares/` — piloto multi-hogar, nueve viviendas de adultos
+  mayores del depósito oficial de CASAS, 7.561 inferencias. Subgrupos
+  poblacionales: cada vivienda es una persona distinta.
+
+La demo sirve para mostrar el **proceso**; los pilotos, para mostrar los
+**resultados** que van en la tesis. Si hay que elegir uno, el multi-hogar es
+el que evalúa el R4.1 como lo pide su enunciado.

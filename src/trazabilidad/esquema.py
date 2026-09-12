@@ -23,8 +23,8 @@ class RegistroInferencia:
     """Una fila de la bitácora: todo lo necesario para auditar una inferencia.
 
     Campos:
-        id_evento: identificador único del evento/inferencia (p. ej. UUID o
-            id del evento de sensor CASAS).
+        id_evento: identificador único del evento/inferencia (p. ej. un UUID
+            o el identificador de la ventana evaluada).
         marca_temporal: instante de la inferencia, ISO 8601 en UTC (sufijo Z).
         referencia_entrada: puntero a la entrada procesada — hash SHA-256 de
             la fila de características usada como input (no se guardan datos

@@ -145,7 +145,8 @@ def _registrar_artefacto(
 def precondicion_preparar_datos(ctx: ContextoEjecucion) -> ContextoEjecucion:
     """Carga y prepara el conjunto de datos que el sistema evaluado consume.
 
-    Carga el crudo de CASAS, valida el esquema, construye características,
+    Carga el crudo declarado en la configuración, valida el esquema,
+    construye características,
     particiona train/test de forma determinista y sella el hash de los datos.
 
     Sella dos hashes distintos: el del crudo tal como se leyó y el del cuadro

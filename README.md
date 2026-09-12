@@ -90,6 +90,7 @@ consolidado de CASAS — 1.596.509 eventos coincidentes, 100 % de acuerdo.
 ```bash
 make test                 # batería de pruebas
 make pipeline             # ejecuta los 6 pasos del marco (usa config.yaml)
+make pipeline CONFIG=config.hogares.yaml   # el piloto multi-hogar
 make demo                 # los 6 pasos sobre 20 días, en segundos (ver docs/demo.md)
 make verificar-registro   # verifica la bitácora de inferencias
 make clean                # borra artefactos generados (no toca datos/)

@@ -200,8 +200,10 @@ Se evaluaron dos fuentes locales:
 La tarea declarada en la Tabla 10 es clasificación supervisada de actividades,
 así que sin etiquetas no hay modelo: **Aruba es la única opción viable**, por
 más hogares que tenga el consolidado.
-**Revisar:** conseguir Milan, Cairo y Tulum anotados cerraría la brecha de
-equidad (ver D23).
+**Resuelto de otra manera (D51).** Milan, Cairo y Tulum **no están
+anotados**: el depósito oficial de CASAS los publica sin etiquetas de
+actividad, así que no sirven para clasificación supervisada. La brecha se
+cerró con la serie `hh`, nueve viviendas de adultos mayores sí anotadas.
 
 ## D22 — Características por zona, no por sensor — y cómo se derivó el mapeo
 Las características se nombran `conteo_Kitchen`, no `conteo_M018`. El R3.3
@@ -236,7 +238,10 @@ Dos advertencias que van al reporte:
    Aruba dice que hijos y nietos visitaban con regularidad, así que el fin de
    semana concentra eventos que no son de la residente.
 
-**Revisar:** cerrar la brecha exige datos anotados de varios hogares.
+**Resuelto (D50, D51).** El contrato admite varias viviendas y el segundo
+piloto corre sobre nueve. Con un hogar por persona, los subgrupos pasan a ser
+poblacionales. Lo que no se cierra es la desagregación por atributos
+demográficos: ningún conjunto público del dominio los publica (D53).
 
 ## D24 — Partición temporal por día, no aleatoria
 Se cambió `particion.estratificar` por `particion.estrategia:
@@ -447,9 +452,9 @@ construyen a partir de la convención de nombres de características de
 `datos.py` (`conteo_<zona>`, `temp_<sensor>`...), que es del marco y no de un
 dataset, así que valen para cualquier sistema que entre por el contrato de
 ingesta.
-**Revisar:** los nombres de zona salen de `datos.zonas` y en Aruba están en
-inglés. Para cuidadores hispanohablantes conviene un mapeo de nombres para
-mostrar; queda como limitación declarada en el reporte.
+**Resuelto (D54).** `datos.nombres_zona` traduce cada zona al idioma de las
+personas destinatarias. No era una limitación cosmética: la ENIA exige
+sistemas cultural y lingüísticamente apropiados (p. 32).
 
 ## D40 — Figuras según el método de visualización del proyecto
 La importancia global es una magnitud sobre categorías sin orden natural:
