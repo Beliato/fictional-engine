@@ -8,6 +8,8 @@ import json
 import pandas as pd
 import pytest
 
+from tests.conftest import aislar_rutas
+
 from src.comun.configuracion import METRICAS_EQUIDAD, Subgrupo
 from src.equidad import desempeno_desagregado as D
 from src.equidad import metricas_equidad as ME
@@ -50,12 +52,7 @@ def _con(config, tmp_path, *, soporte=2, umbrales=None, descriptivas=None):
             tuple(descriptivas) if descriptivas is not None else (PARIDAD, COCIENTE)
         ),
     )
-    artefactos = tmp_path / "artefactos"
-    rutas = dataclasses.replace(
-        config.rutas,
-        artefactos=artefactos,
-        reporte_equidad=artefactos / "reporte_equidad.md",
-    )
+    rutas = aislar_rutas(config.rutas, tmp_path / "artefactos")
     return dataclasses.replace(config, equidad=equidad, rutas=rutas)
 
 

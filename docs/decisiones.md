@@ -1065,3 +1065,45 @@ ingesta; estimar varianza exige varias corridas del modelo y decidir cuál
 entra al expediente. Ambas son extensiones del procedimiento, no ajustes.
 
 Contexto completo en `docs/crisp-ml-q.md` (D55).
+
+## D57 — Las pruebas no pueden escribir dentro del expediente
+El fixture `config_piloto` redirigía a `tmp_path` **cinco de las catorce
+rutas** de `Rutas`: `artefactos`, `ficha_caracterizacion`, `datasheet`,
+`protocolo_evaluacion` y `registro_inferencias`. Las otras nueve conservaban
+el valor del `config.yaml` real, así que cada corrida de la batería escribía
+el model card, los tres reportes, la bitácora de ejecución y el manifiesto
+**dentro del expediente del piloto**. Los otros tres fixtures que arman
+configuraciones —equidad, explicabilidad, modelado— tenían el mismo patrón.
+
+**Cómo se veía.** No como un fallo: las pruebas pasaban. El expediente
+quedaba contradiciéndose a sí mismo, con una bitácora de 11.175 inferencias
+reales y un reporte de cumplimiento que decía "Se explicaron 10 inferencias",
+equidad "NO EVALUABLE" y rutas tipo `../../../../home/migue/...`. El
+manifiesto sellaba los archivos de la prueba. Se detectó por las fechas de
+modificación: tres artefactos con la hora del pipeline y seis con la hora de
+un `pytest` posterior.
+
+**Por qué importa más que un bug de pruebas.** Cualquiera que corriera
+`make test` después de `make pipeline` destruía la evidencia sin recibir
+ningún aviso. Es la clase de fallo que el marco existe para detectar,
+ocurriendo dentro del marco.
+
+**La corrección no es completar la lista.** Una lista escrita a mano se
+vuelve a quedar corta en cuanto se agregue una ruta: fue lo que pasó. El
+ayudante `aislar_rutas` de `tests/conftest.py` recorre
+`dataclasses.fields(Rutas)` y reubica **todo** lo que no esté declarado como
+entrada. `RUTAS_DE_ENTRADA` —`datos_crudos`, `datos_intermedios`,
+`plantillas`— es la única lista, y es la de los insumos que las pruebas sí
+leen del repositorio.
+
+**Las cuatro pruebas de `tests/test_aislamiento.py`** comprueban que ninguna
+salida escapa de la base, que el aislamiento conserva la forma del árbol —la
+bitácora vive en un subdirectorio y varios módulos derivan rutas de
+`artefactos`—, que los nombres de `RUTAS_DE_ENTRADA` siguen siendo campos
+reales, y la regresión concreta: que ninguna ruta del config de prueba caiga
+dentro de `artefactos/` del repositorio.
+
+**Verificación.** Una corrida completa de la batería deja el árbol de
+artefactos idéntico, archivo por archivo y fecha por fecha. El expediente de
+Aruba se regeneró; los de `hogares/` y `demo/` nunca se vieron afectados,
+porque sus rutas no son las del `config.yaml` que cargan las pruebas.

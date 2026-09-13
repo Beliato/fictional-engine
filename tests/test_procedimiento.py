@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.conftest import aislar_rutas
+
 RAIZ_REPO = Path(__file__).resolve().parents[1]
 
 from src.procedimiento.evidencia import EvidenciaIncompleta
@@ -84,30 +86,6 @@ def test_cada_paso_declara_su_producto_y_funcion_nist():
 
 # --- Precondiciones y pasos 1 y 2 ---------------------------------------------
 
-
-@pytest.fixture
-def config_piloto(config, tmp_path, crudo_sintetico):
-    """Config con crudo sintético y artefactos en `tmp_path`.
-
-    Bosque chico: lo que se prueba es el procedimiento, no el desempeño.
-    """
-    crudo = tmp_path / "crudo.txt"
-    crudo.write_text(crudo_sintetico(dias=12, eventos_por_dia=150), encoding="utf-8")
-    artefactos = tmp_path / "artefactos"
-    rutas = dataclasses.replace(
-        config.rutas,
-        artefactos=artefactos,
-        ficha_caracterizacion=artefactos / "ficha_caracterizacion.md",
-        datasheet=artefactos / "datasheet.md",
-        protocolo_evaluacion=artefactos / "protocolo_evaluacion.md",
-        registro_inferencias=artefactos / "bitacora" / "inferencias.jsonl",
-    )
-    datos = dataclasses.replace(config.datos, archivo_crudo=crudo)
-    modelo = dataclasses.replace(
-        config.modelo,
-        hiperparametros={**config.modelo.hiperparametros, "n_estimators": 8},
-    )
-    return dataclasses.replace(config, rutas=rutas, datos=datos, modelo=modelo)
 
 
 @pytest.fixture

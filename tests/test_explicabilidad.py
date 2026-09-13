@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+
+from tests.conftest import aislar_rutas
 import shap
 import yaml
 
@@ -29,12 +31,7 @@ RESPONSABLE = "Miguel Méndez — Investigador responsable"
 def config_expl(config, tmp_path):
     """Config con artefactos en `tmp_path`, bosque chico y pocos puntos por
     gráfico: lo que se prueba es la mecánica, no el desempeño."""
-    artefactos = tmp_path / "artefactos"
-    rutas = dataclasses.replace(
-        config.rutas,
-        artefactos=artefactos,
-        reporte_explicabilidad=artefactos / "reporte_explicabilidad.md",
-    )
+    rutas = aislar_rutas(config.rutas, tmp_path / "artefactos")
     modelo = dataclasses.replace(
         config.modelo,
         hiperparametros={**config.modelo.hiperparametros, "n_estimators": 8},
