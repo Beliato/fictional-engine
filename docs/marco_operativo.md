@@ -13,11 +13,11 @@ ejecutado ese procedimiento íntegramente.
 
 ## Los 3 principios y su articulación normativa
 
-| Principio | ENIA Costa Rica | AI Act EU | NIST AI RMF |
+| Componente del marco | Principio rector de la ENIA | AI Act EU | NIST AI RMF |
 |---|---|---|---|
-| **Explicabilidad** | Transparencia y explicabilidad | Art. 13 (transparencia) | MEASURE 2.9 |
-| **Equidad** | Equidad y no discriminación | Art. 10 (gobernanza de datos y sesgos) | MEASURE 2.11 |
-| **Trazabilidad** | Rendición de cuentas y trazabilidad | Art. 12 (conservación de registros) | GOVERN 1.4 / MANAGE 4.1 |
+| **Explicabilidad** | 3 — Transparencia y explicabilidad | Art. 13 (transparencia) | MEASURE 2.9 |
+| **Equidad** | 4 — Equidad y no discriminación | Art. 10 (gobernanza de datos y sesgos) | MEASURE 2.11 |
+| **Trazabilidad** | 5 — Responsabilidad | Art. 12 (conservación de registros) | GOVERN 1.4 / MANAGE 4.1 |
 
 > El mapeo concreto de artículos/subcategorías es **provisional** y debe
 > validarlo un especialista legal. Vive en `config.yaml`

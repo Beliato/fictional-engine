@@ -30,7 +30,7 @@
 ## 4. Desempeño global
 {{tabla_desempeno_global}}
 
-## 5. Desempeño desagregado (Principio 2 — Equidad)
+## 5. Desempeño desagregado (equidad — ENIA principio 4)
 {{tabla_desempeno_desagregado}}
 
 ## 6. Métricas de equidad vs umbrales PRE-DECLARADOS
@@ -40,12 +40,12 @@
 
 - **Veredicto de equidad:** {{veredicto_equidad}}
 
-## 7. Explicabilidad (Principio 1)
+## 7. Explicabilidad (ENIA principio 3)
 - **Método:** {{explainer}}
 - **Importancia global (top):** {{importancia_global_top}}
 - Figuras: {{rutas_figuras_explicabilidad}}
 
-## 8. Trazabilidad (Principio 3)
+## 8. Trazabilidad (responsabilidad — ENIA principio 5)
 - **Bitácora de inferencias:** {{ruta_bitacora}} ({{n_inferencias}} registros)
 - **Verificación de la bitácora:** {{estado_verificacion_bitacora}}
 

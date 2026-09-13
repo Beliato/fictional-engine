@@ -1107,3 +1107,48 @@ dentro de `artefactos/` del repositorio.
 artefactos idéntico, archivo por archivo y fecha por fecha. El expediente de
 Aruba se regeneró; los de `hogares/` y `demo/` nunca se vieron afectados,
 porque sus rutas no son las del `config.yaml` que cargan las pruebas.
+
+## D58 — La numeración de los principios es la de la ENIA, y ninguna otra
+El marco numeraba sus tres componentes 1 (explicabilidad), 2 (equidad) y 3
+(trazabilidad). La ENIA numera sus principios rectores del 1 al 7, y los que
+el marco cubre son el **3, el 4 y el 5**. Las dos numeraciones convivían en el
+mismo documento.
+
+**Cómo se leía.** En el reporte de cumplimiento, una tabla decía
+"2. Equidad | NO APRUEBA" y unos párrafos más abajo el apartado de alcance
+decía "quedan fuera de alcance los principios 1 (Paz y dignidad humana),
+**2 (Supervisión humana)**". El model card titulaba "Trazabilidad
+(Principio 3)" mientras el mismo expediente declaraba que el principio 3 es
+"Transparencia y explicabilidad". Un auditor que cruzara las dos tablas
+concluiría que el expediente se contradice.
+
+**La decisión.** Los tres son **componentes del marco**, no principios. Los
+artefactos dejan de numerarlos y pasan a nombrar el principio rector de la
+ENIA que documentan:
+
+| Componente | Principio rector de la ENIA |
+|---|---|
+| Explicabilidad | 3 — Transparencia y explicabilidad |
+| Equidad | 4 — Equidad y no discriminación |
+| Trazabilidad | 5 — Responsabilidad |
+
+Es más informativo que el número propio: liga cada artefacto a la norma que lo
+justifica, que es lo que un auditor necesita, y elimina la colisión de raíz en
+vez de pedirle al lector que la resuelva.
+
+**Los encabezados de sección pierden el número.** "## 1. Explicabilidad" pasa a
+"## Explicabilidad": la numeración no aportaba nada y era la mitad del choque.
+
+**Lo que ata esto.** Tres pruebas en `tests/test_documentacion.py`. El mapeo
+componente→principio **se deriva del código de cada requerimiento** —R3.1
+documenta el principio 3— y no de una lista aparte; se comprueba que cada
+componente apunte a un principio declarado como cubierto, que el reporte de
+cumplimiento nombre los principios exactamente como los declara
+`PRINCIPIOS_ENIA` (la fuente verificada contra el PDF, D53), y que ninguna
+plantilla vuelva a numerar principios por su cuenta. Se verificó que esta
+última falla de verdad reintroduciendo el título viejo.
+
+**De paso, `docs/marco_operativo.md`.** Su tabla seguía llamando al principio 5
+"Rendición de cuentas y trazabilidad", el nombre que D53 corrigió en las
+configuraciones y en el código pero no aquí. Ahora las tres filas llevan el
+número de la ENIA.
