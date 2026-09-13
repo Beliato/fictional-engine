@@ -1,30 +1,38 @@
 # Marco operativo de cumplimiento regulatorio para IA de sensores PIR
 
 Proyecto de investigación académica. Desarrolla un **marco operativo** que
-verifica tres principios de la **Estrategia Nacional de IA de Costa Rica**
-(explicabilidad, equidad, trazabilidad), articulados con el **AI Act de la UE**
-y el **NIST AI RMF**, sobre un sistema de IA que clasifica actividad
+verifica tres de los siete principios rectores de la **Estrategia Nacional de
+IA de Costa Rica** —el 3 (transparencia y explicabilidad), el 4 (equidad y no
+discriminación) y el 5 (responsabilidad)—, articulados con el **AI Act de la
+UE** y el **NIST AI RMF**, sobre un sistema de IA que clasifica actividad
 domiciliaria a partir de **sensores PIR** (dataset público **CASAS**), y
 produce **evidencia auditable**.
+
+Sus tres componentes —explicabilidad, equidad y trazabilidad— documentan esos
+principios; el reporte de cumplimiento declara qué queda fuera dentro de cada
+uno.
 
 El requisito transversal del proyecto es **reproducibilidad y trazabilidad**;
 por eso el propio repositorio es ejemplar en eso: versiones fijadas, semillas
 declaradas, ejecución determinista y sin estado oculto.
 
-> **Estado:** en construcción. Firmas, tipos, docstrings y estructura están
-> puestos; la lógica pendiente está marcada con `TODO` /
-> `raise NotImplementedError`. Ya implementados:
+> **Estado:** el marco está completo y se ejecutó sobre **dos pilotos**, con
+> **272 pruebas** en verde.
 >
-> - `src/comun/configuracion.py` — carga y validación de `config.yaml`.
-> - `src/comun/utilidades.py` — hashing, tiempo UTC, E/S JSON determinista.
-> - `src/comun/lectores.py` — contrato de ingesta y lector de CASAS.
-> - `src/comun/datos.py` — características por zona y partición temporal.
-> - `src/comun/modelado.py` — construcción, entrenamiento determinista,
->   sellado y persistencia del modelo.
-> - `src/explicabilidad/` — **Principio 1**: atribución SHAP de cada
->   inferencia, importancia global, enunciados en lenguaje llano y reporte.
-> - `src/trazabilidad/` — **Principio 3 completo**: esquema, escritor
->   append-only y verificación de integridad y cobertura.
+> | Piloto | Configuración | Viviendas | Inferencias | Requerimientos |
+> |---|---|---|---:|---|
+> | CASAS Aruba | `config.yaml` | 1 | 11.175 | 9 de 9 |
+> | CASAS serie `hh` | `config.hogares.yaml` | 9 | 7.561 | 9 de 9 |
+>
+> Los dos expedientes están completos y los dos dan **NO CUMPLE**: el
+> veredicto es del sistema evaluado, no del marco. Que el procedimiento
+> produzca la evidencia de un incumplimiento es exactamente lo que se le pide
+> (Tabla 10).
+>
+> Quedan dos `NotImplementedError` deliberados, que rechazan una opción
+> declarada en configuración en vez de fallar a medias: la perturbación
+> `interventional` de SHAP y las estrategias de partición distintas de
+> `temporal_por_dia`.
 
 ---
 
@@ -116,9 +124,9 @@ Detalle en [`docs/arquitectura.md`](docs/arquitectura.md).
 ```
 src/
 ├── comun/            configuración, lectores, datos, modelado, utilidades
-├── explicabilidad/   Principio 1 — atribución SHAP local y global
-├── equidad/          Principio 2 — desempeño desagregado + disparidad vs umbrales
-├── trazabilidad/     Principio 3 — registro JSONL + verificación
+├── explicabilidad/   ENIA principio 3 — atribución SHAP local y global
+├── equidad/          ENIA principio 4 — desagregado + disparidad vs umbrales
+├── trazabilidad/     ENIA principio 5 — registro JSONL + verificación
 └── procedimiento/    orquestador de los 6 pasos + generación de evidencia
 ```
 
