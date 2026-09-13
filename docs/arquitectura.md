@@ -12,19 +12,19 @@ src/
 │   ├── semillas.py         control de aleatoriedad y verificación de entorno
 │   └── utilidades.py       hashing, tiempo UTC, E/S JSON determinista
 │
-├── explicabilidad/   Principio 1 — SHAP
+├── explicabilidad/   ENIA principio 3 — SHAP
 │   ├── atribucion_local.py    SHAP de cada inferencia -> artefacto consolidado
 │   ├── lenguaje.py            atribuciones -> enunciados en lenguaje llano (R3.3)
 │   ├── atribucion_global.py   importancia agregada + figuras
 │   └── reporte.py             consolida el reporte de explicabilidad
 │
-├── equidad/          Principio 2 — desempeño desagregado + disparidad
+├── equidad/          ENIA principio 4 — desagregado + disparidad
 │   ├── entradas.py                validación común de etiquetas y subgrupos
 │   ├── desempeno_desagregado.py   métricas por subgrupo (sin veredicto)
 │   ├── metricas_equidad.py        tasas uno contra resto vs umbrales -> veredicto
 │   └── reporte.py                 consolida el reporte de equidad
 │
-├── trazabilidad/     Principio 3 — registro + verificación
+├── trazabilidad/     ENIA principio 5 — registro + verificación
 │   ├── esquema.py         RegistroInferencia (implementado) + (de)serialización
 │   ├── registro.py        escritor append-only JSONL
 │   └── verificacion.py    integridad + cobertura de la bitácora (CLI)

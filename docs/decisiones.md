@@ -1152,3 +1152,37 @@ plantilla vuelva a numerar principios por su cuenta. Se verificó que esta
 "Rendición de cuentas y trazabilidad", el nombre que D53 corrigió en las
 configuraciones y en el código pero no aquí. Ahora las tres filas llevan el
 número de la ENIA.
+
+## D59 — El README describe el proyecto que existe
+El bloque "Estado" del README decía "en construcción", que "la lógica
+pendiente está marcada con `TODO` / `raise NotImplementedError`" y listaba
+cinco módulos como implementados. No mencionaba `src/equidad/` ni
+`src/procedimiento/`, que son la mitad del marco. El proyecto lleva dos
+pilotos ejecutados y 272 pruebas.
+
+Ahora el bloque dice lo que hay: los dos pilotos con sus cifras, que los dos
+dan **NO CUMPLE** —y que ese veredicto es del sistema evaluado, no del marco,
+porque producir la evidencia de un incumplimiento es justo lo que la Tabla 10
+le pide al procedimiento— y los dos `NotImplementedError` que quedan, que no
+son deuda sino rechazo explícito de una opción declarada en configuración.
+
+**La entradilla también mentía por omisión.** Decía que el marco "verifica
+tres principios de la ENIA (explicabilidad, equidad, trazabilidad)". Esos son
+los nombres de los **componentes del marco**; los principios son el 3, el 4 y
+el 5, y son siete en total (D58). Ahora los nombra como los nombra la ENIA.
+
+**Lo que este hallazgo enseñó sobre el guardián de D58.** La prueba que
+impedía reintroducir la numeración vieja miraba solo `plantillas/`. La
+numeración sobrevivió en el README y en `docs/arquitectura.md`, y la prueba
+pasó. Es el mismo patrón que D57 —una lista de lugares que se queda corta— y
+que la corrección de la limitación de Aruba, donde la búsqueda se hizo en
+`docs/` y el texto vivía en los YAML.
+
+El guardián pasa a recorrer **todo el texto del repositorio**: README, `docs/`,
+`plantillas/` y `src/`. La única excepción es `docs/decisiones.md`, porque su
+trabajo es citar los textos que se corrigieron. Se verificó que falla
+reintroduciendo la numeración vieja en el README.
+
+**La regla, para la próxima.** Una prueba que comprueba ausencia tiene que
+declarar dónde busca, y ese alcance es parte de lo que hay que revisar: una
+búsqueda incompleta no se distingue de una búsqueda exitosa.

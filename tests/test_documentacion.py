@@ -139,14 +139,34 @@ def test_el_reporte_de_cumplimiento_nombra_los_principios_como_el_codigo():
             assert f"{numero} — {nombre}" in texto, f"falta {numero} — {nombre}"
 
 
-def test_ninguna_plantilla_numera_sus_propios_principios():
+#: `decisiones.md` es el registro histórico: su trabajo es citar los textos
+#: que se corrigieron, así que es el único archivo que puede nombrar la
+#: numeración vieja.
+SIN_REVISAR = {"decisiones.md"}
+
+
+def _fuentes_de_texto():
+    """Todo el texto del repositorio donde podría reaparecer la numeración."""
+    yield RAIZ / "README.md"
+    for patron in ("docs/*.md", "plantillas/*.md", "src/**/*.py"):
+        for ruta in sorted(RAIZ.glob(patron)):
+            if ruta.name not in SIN_REVISAR:
+                yield ruta
+
+
+def test_nada_en_el_repositorio_numera_sus_propios_principios():
     """El marco tenía su propia numeración —1 explicabilidad, 2 equidad,
     3 trazabilidad— y la ENIA numera 3, 4 y 5. En el mismo reporte convivían
     "2. Equidad" y "principio 2 (Supervisión humana), fuera de alcance"
-    (D58). La numeración de la ENIA es la única."""
-    for ruta in sorted(PLANTILLAS.glob("*.md")):
+    (D58). La numeración de la ENIA es la única.
+
+    La primera versión de esta prueba solo miraba `plantillas/`, y la
+    numeración vieja sobrevivió en el README y en `docs/arquitectura.md`
+    (D59). Mira todo el texto del repositorio."""
+    for ruta in _fuentes_de_texto():
         texto = ruta.read_text(encoding="utf-8")
         for n in (1, 2, 3):
             assert f"Principio {n}" not in texto, (
-                f"{ruta.name} usa la numeración propia: 'Principio {n}'"
+                f"{ruta.relative_to(RAIZ)} usa la numeración propia: "
+                f"'Principio {n}'"
             )
