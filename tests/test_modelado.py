@@ -5,6 +5,8 @@ from __future__ import annotations
 import dataclasses
 
 import pytest
+
+from tests.conftest import aislar_rutas
 import sklearn
 
 from src.comun import modelado as M
@@ -20,7 +22,7 @@ def config_rapida(config, tmp_path):
     aquí —el sellado y el determinismo— y multiplican el tiempo de la
     batería.
     """
-    rutas = dataclasses.replace(config.rutas, artefactos=tmp_path / "artefactos")
+    rutas = aislar_rutas(config.rutas, tmp_path / "artefactos")
     modelo = dataclasses.replace(
         config.modelo,
         hiperparametros={**config.modelo.hiperparametros, "n_estimators": 8},
