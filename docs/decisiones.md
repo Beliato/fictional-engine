@@ -987,6 +987,47 @@ tal cual. Traducirlos exigiría un mapeo de etiquetas y afectaría a las tablas
 de equidad, donde el nombre técnico es la clave de comparación. Queda
 declarado.
 
+## D55 — El marco se sitúa frente a CRISP-ML(Q) en vez de adherirse
+CRISP-ML(Q) (Studer et al., 2021) es el modelo de proceso de referencia para
+el ciclo de vida de aplicaciones de aprendizaje automático con aseguramiento
+de calidad. Un tribunal va a preguntar dónde encaja este marco respecto de él,
+y la respuesta no es "lo sigue".
+
+**Son procesos de distinta naturaleza.** CRISP-ML(Q) guía a quien *construye*
+el modelo; el marco evalúa el *cumplimiento* de un sistema ya construido. Eso
+explica la forma que ya tenía el procedimiento sin que la comparación lo
+forzara: las dos precondiciones comprimen las fases 2 y 3 de CRISP-ML(Q) en
+insumos —no son actividad de cumplimiento, son el sujeto sobre el que el
+cumplimiento se comprueba— y los seis pasos de la Tabla 9 se reparten entre
+las fases 1 y 4.
+
+**Lo que el marco aporta:** equidad medida en vez de considerada, umbrales
+sellados por hash antes de medir (CRISP-ML(Q) pide comparar contra criterios
+previos pero no impide ajustarlos después) y evidencia verificable en vez de
+documentos revisados.
+
+**Tres divergencias, declaradas y argumentadas.** No hay criterio de éxito de
+nivel ML, y su ausencia es la decisión: un umbral de exactitud convertiría al
+modelo en objeto de optimización, justo lo que la Tabla 10 excluye. La
+iteración sobre características, que CRISP-ML(Q) propone, cabe **antes** de la
+precondición A y no después del paso 3. Y el modelo no se selecciona porque
+llega dado.
+
+**Dos huecos, sin resolver.** La robustez —que CRISP-ML(Q) nombra en las fases
+3 y 4— no se mide. Ninguno de los tres principios de la ENIA la exige, y el
+artículo del AI Act que la trata, el 15, no está en la articulación normativa
+del marco, que declara el 13, el 10 y el 12. El hueco es de alcance, no de
+omisión, pero sigue abierto. Y la reproducibilidad de *resultado* (media y
+varianza sobre varias semillas) tampoco se cubre: el marco asegura la de
+*método* y sella una sola semilla.
+
+**Las fases 5 y 6 están fuera de alcance, con una salvedad que conviene decir
+en la defensa:** la fase 6 consume lo que el marco produce. El registro
+estructurado del R5.1 y el contrato de ingesta validado son exactamente el
+insumo que CRISP-ML(Q) propone para detectar deriva y anomalías. El marco no
+monitorea, pero deja instalado lo que hace falta para monitorear.
+
+Detalle completo en `docs/crisp-ml-q.md`.
 ## D56 — El alcance frente a la ENIA y los límites del procedimiento son dos cosas
 El reporte de cumplimiento ya declaraba qué principios de la ENIA cubre el
 marco y qué queda fuera dentro de cada uno (D53). Faltaba lo otro: qué
