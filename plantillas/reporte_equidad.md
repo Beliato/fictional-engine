@@ -1,4 +1,9 @@
-# Reporte de equidad (Principio 2) — ejecución {{id_ejecucion}}
+# Reporte de equidad — ejecución {{id_ejecucion}}
+
+> Componente de equidad del marco. Documenta requerimientos derivados
+> del **principio rector 4 de la ENIA — Equidad y no discriminación**;
+> la cobertura es parcial y el reporte de cumplimiento declara qué queda
+> fuera.
 
 > Requerimientos que documenta: **R4.1** (desempeño desagregado entre
 > subgrupos) y **R4.2** (disparidades medidas con métricas definidas y

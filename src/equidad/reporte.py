@@ -1,4 +1,4 @@
-"""Consolidación del reporte de equidad (Principio 2).
+"""Consolidación del reporte de equidad (ENIA principio 4).
 
 Reúne la evidencia de los dos requerimientos del principio —desempeño
 desagregado (R4.1) y disparidad medida contra umbrales pre-declarados

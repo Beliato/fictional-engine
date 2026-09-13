@@ -1,4 +1,9 @@
-# Reporte de explicabilidad (Principio 1) — ejecución {{id_ejecucion}}
+# Reporte de explicabilidad — ejecución {{id_ejecucion}}
+
+> Componente de explicabilidad del marco. Documenta requerimientos
+> derivados del **principio rector 3 de la ENIA — Transparencia y
+> explicabilidad**; la cobertura es parcial y el reporte de cumplimiento
+> declara qué queda fuera.
 
 > Requerimientos que documenta: **R3.1** (explicación local de cada
 > predicción), **R3.2** (importancia global) y **R3.3** (enunciados en

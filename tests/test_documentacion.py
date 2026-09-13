@@ -18,6 +18,10 @@ from pathlib import Path
 import yaml
 
 from src.comun.configuracion import cargar_configuracion
+from src.procedimiento.requerimientos import (
+    PRINCIPIOS_ENIA,
+    REQUERIMIENTOS,
+)
 
 RAIZ = Path(__file__).resolve().parents[1]
 GUIA = RAIZ / "docs" / "aplicar-a-otro-dataset.md"
@@ -91,3 +95,58 @@ def test_la_guia_documenta_los_dos_lectores_registrados():
     texto = GUIA.read_text(encoding="utf-8")
     for nombre in LECTORES:
         assert nombre in texto, f"la guía no menciona el formato {nombre!r}"
+
+
+# =============================================================================
+# La numeración de los principios
+# =============================================================================
+
+PLANTILLAS = RAIZ / "plantillas"
+
+
+def _numero_enia_por_componente() -> dict[str, str]:
+    """El código de cada requerimiento lleva el número del principio: R3.1
+    documenta el principio 3 de la ENIA. De ahí sale el mapeo, sin lista
+    aparte que pueda desincronizarse."""
+    mapa: dict[str, str] = {}
+    for requerimiento in REQUERIMIENTOS:
+        numero = requerimiento.codigo[1]
+        anterior = mapa.setdefault(requerimiento.principio, numero)
+        assert anterior == numero, (
+            f"{requerimiento.codigo} rompe el mapeo: "
+            f"{requerimiento.principio} ya apuntaba al principio {anterior}"
+        )
+    return mapa
+
+
+def test_cada_componente_apunta_a_un_principio_declarado_como_cubierto():
+    """Si un componente apuntara a un principio que el marco declara fuera de
+    alcance, el expediente se contradiría consigo mismo."""
+    cubiertos = {n for n, _, cubierto in PRINCIPIOS_ENIA if cubierto}
+    for componente, numero in _numero_enia_por_componente().items():
+        assert numero in cubiertos, (
+            f"{componente} documenta el principio {numero}, que no está "
+            f"declarado como cubierto"
+        )
+
+
+def test_el_reporte_de_cumplimiento_nombra_los_principios_como_el_codigo():
+    """La tabla del reporte escribe los números y nombres a mano; esto los ata
+    a `PRINCIPIOS_ENIA`, que es la fuente verificada contra el PDF (D53)."""
+    texto = (PLANTILLAS / "reporte_cumplimiento.md").read_text(encoding="utf-8")
+    for numero, nombre, cubierto in PRINCIPIOS_ENIA:
+        if cubierto:
+            assert f"{numero} — {nombre}" in texto, f"falta {numero} — {nombre}"
+
+
+def test_ninguna_plantilla_numera_sus_propios_principios():
+    """El marco tenía su propia numeración —1 explicabilidad, 2 equidad,
+    3 trazabilidad— y la ENIA numera 3, 4 y 5. En el mismo reporte convivían
+    "2. Equidad" y "principio 2 (Supervisión humana), fuera de alcance"
+    (D58). La numeración de la ENIA es la única."""
+    for ruta in sorted(PLANTILLAS.glob("*.md")):
+        texto = ruta.read_text(encoding="utf-8")
+        for n in (1, 2, 3):
+            assert f"Principio {n}" not in texto, (
+                f"{ruta.name} usa la numeración propia: 'Principio {n}'"
+            )

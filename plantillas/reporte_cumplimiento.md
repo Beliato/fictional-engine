@@ -8,16 +8,19 @@
 ## Veredicto global
 **{{veredicto_global}}**
 
-| Principio | Estado | Evidencia |
-|---|---|---|
-| 1. Explicabilidad | {{estado_explicabilidad}} | {{ruta_reporte_explicabilidad}} |
-| 2. Equidad | {{estado_equidad}} | {{ruta_reporte_equidad}} |
-| 3. Trazabilidad | {{estado_trazabilidad}} | {{ruta_bitacora}} |
+| Componente del marco | Principio rector de la ENIA | Estado | Evidencia |
+|---|---|---|---|
+| Explicabilidad | 3 — Transparencia y explicabilidad | {{estado_explicabilidad}} | {{ruta_reporte_explicabilidad}} |
+| Equidad | 4 — Equidad y no discriminación | {{estado_equidad}} | {{ruta_reporte_equidad}} |
+| Trazabilidad | 5 — Responsabilidad | {{estado_trazabilidad}} | {{ruta_bitacora}} |
 
-## 1. Explicabilidad
+> Los tres componentes del marco no son los principios 1, 2 y 3 de la ENIA:
+> corresponden al 3, al 4 y al 5. El apartado de alcance lista los siete.
+
+## Explicabilidad
 {{resumen_explicabilidad}}
 
-## 2. Equidad
+## Equidad
 - Subgrupos evaluados: {{subgrupos}}
 - Umbrales PRE-DECLARADOS, sellados por hash en el paso 3 y sin ajuste
   posterior:
@@ -30,7 +33,7 @@
 
 - Métricas incumplidas: {{metricas_incumplidas}}
 
-## 3. Trazabilidad
+## Trazabilidad
 - Registros de inferencia: {{n_inferencias}}
 - Verificación de integridad: {{estado_verificacion_bitacora}}
 - Cobertura (1 registro por inferencia del set de prueba): {{estado_cobertura}}

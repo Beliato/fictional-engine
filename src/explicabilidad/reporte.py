@@ -1,4 +1,4 @@
-"""Consolidación del reporte de explicabilidad (Principio 1).
+"""Consolidación del reporte de explicabilidad (ENIA principio 3).
 
 Reúne en un solo artefacto la evidencia de los tres requerimientos del
 principio: la explicación local de cada predicción (R3.1), la importancia
