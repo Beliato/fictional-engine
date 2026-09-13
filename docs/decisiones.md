@@ -1028,3 +1028,40 @@ insumo que CRISP-ML(Q) propone para detectar deriva y anomalías. El marco no
 monitorea, pero deja instalado lo que hace falta para monitorear.
 
 Detalle completo en `docs/crisp-ml-q.md`.
+## D56 — El alcance frente a la ENIA y los límites del procedimiento son dos cosas
+El reporte de cumplimiento ya declaraba qué principios de la ENIA cubre el
+marco y qué queda fuera dentro de cada uno (D53). Faltaba lo otro: qué
+prácticas de aseguramiento que un modelo de proceso de referencia prescribe
+—CRISP-ML(Q), Studer et al. (2021)— este procedimiento no ejecuta.
+
+**Por qué no van en `ALCANCE_PARCIAL`.** Esa constante está organizada por
+principio de la ENIA y responde "de este principio, ¿qué falta?". La robustez
+no pertenece a ninguno de los tres principios cubiertos, así que meterla ahí
+diría algo falso sobre el principio que la alojara. Son preguntas distintas:
+*qué se promete cubrir* y *qué pruebas se ejecutaron*. Un principio puede
+estar cubierto y la prueba no haberse hecho.
+
+De ahí `LIMITES_DEL_PROCEDIMIENTO`, una constante aparte, con su propio
+apartado en el reporte.
+
+**Los dos límites declarados.** La **robustez**: el expediente no dice nada
+sobre el comportamiento ante entradas ruidosas, degradadas o falsificadas,
+porque el procedimiento no las genera ni las mide; un veredicto de equidad
+favorable no implica estabilidad ante perturbaciones de la señal. Y la
+**reproducibilidad de resultado**: la corrida es reproducible —semilla,
+versiones y hashes sellados— pero no se estima cuánto se moverían los números
+al cambiar la semilla, así que las disparidades del reporte de equidad son una
+realización del entrenamiento y no una media con su varianza.
+
+**La segunda tiene consecuencia práctica inmediata.** El piloto de Aruba tiene
+una combinación en 0,128 contra un umbral de 0,10, y el multi-hogar varias
+cerca del límite. Sin estimación de varianza, una diferencia así no distingue
+entre disparidad del sistema y ruido de una semilla. El reporte ahora lo dice
+en vez de dejar que el lector suponga lo contrario.
+
+**Lo que esto no hace.** No cierra ninguno de los dos huecos: los declara.
+Medir robustez exige un generador de perturbaciones sobre el contrato de
+ingesta; estimar varianza exige varias corridas del modelo y decidir cuál
+entra al expediente. Ambas son extensiones del procedimiento, no ajustes.
+
+Contexto completo en `docs/crisp-ml-q.md` (D55).

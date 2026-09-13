@@ -20,6 +20,7 @@ from src.equidad.reporte import tabla_protocolo
 from src.procedimiento.orquestador import ejecutar_marco
 from src.procedimiento.requerimientos import (
     ALCANCE_PARCIAL,
+    LIMITES_DEL_PROCEDIMIENTO,
     PRINCIPIOS_ENIA,
     REQUERIMIENTOS,
     verificar_cobertura_requerimientos,
@@ -476,3 +477,17 @@ def test_el_alcance_declara_tres_principios_de_siete():
     assert len(PRINCIPIOS_ENIA) == 7
     assert sum(1 for _, _, cubierto in PRINCIPIOS_ENIA if cubierto) == 3
     assert len(ALCANCE_PARCIAL) == 3
+
+
+def test_el_reporte_declara_los_limites_del_procedimiento(ctx_documentado):
+    """El alcance frente a la ENIA y los límites del procedimiento son cosas
+    distintas: un principio puede estar cubierto y la prueba no haberse hecho.
+    Quien audite el expediente necesita las dos para leerlo (D56)."""
+    ctx = paso_6_verificacion_auditabilidad(ctx_documentado)
+    texto = ctx.artefactos["reporte_cumplimiento"].read_text(encoding="utf-8")
+
+    for nombre, _ in LIMITES_DEL_PROCEDIMIENTO:
+        assert nombre in texto, nombre
+    # Lo que hace útil la declaración es la consecuencia, no el rótulo.
+    assert "entradas ruidosas, degradadas o falsificadas" in texto
+    assert "no a una media con su varianza" in texto
