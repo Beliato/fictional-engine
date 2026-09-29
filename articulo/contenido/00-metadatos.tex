@@ -1,0 +1,79 @@
+% =============================================================================
+% Título, autores, resumen y palabras clave.
+% Texto: borrador de Laura Segura (articulo_tecnologia_en_marcha.md), con los
+% acentos restaurados.
+% =============================================================================
+
+\newcommand{\tituloES}{Marco operativo de cumplimiento para sistemas de inteligencia artificial basados en sensores PIR}
+\newcommand{\tituloEN}{Operational compliance framework for artificial intelligence systems based on PIR sensors}
+
+% Una persona autora por bloque: nombre en negrita; afiliación y país; correo;
+% ORCID. La plantilla deja lugar para tres.
+\newcommand{\autor}[4]{%
+  \textbf{#1}\\
+  #2\\
+  #3\\
+  ORCID: #4\par\medskip}
+
+\newcommand{\bloqueAutores}{%
+  \autor{Miguel Ángel Méndez Arias}
+        {Universidad CENFOTEC. Costa Rica}
+        {\pendiente{correo}}
+        {\pendiente{ORCID}}
+  \autor{Laura María Segura Miranda}
+        {Universidad CENFOTEC. Costa Rica}
+        {\pendiente{correo}}
+        {\pendiente{ORCID}}
+  \pendiente{orden de las personas autoras y si hay una tercera (p. ej., quien dirigió la tesis)}\par}
+
+\newcommand{\resumenES}{%
+Los sistemas de inteligencia artificial aplicados al monitoreo domiciliario de
+personas adultas mayores prometen apoyar la permanencia segura en el hogar, pero
+también generan exigencias de transparencia, equidad y responsabilidad. En Costa
+Rica, la Estrategia Nacional de Inteligencia Artificial establece estos
+principios sin especificar mecanismos técnicos para verificarlos en sistemas
+concretos. Este artículo presenta y evalúa un marco operativo de cumplimiento
+para sistemas de clasificación de actividades basados en sensores de infrarrojo
+pasivo y otros sensores ambientales. La metodología consistió en traducir tres
+principios de la estrategia nacional en nueve requerimientos operativos,
+articularlos con el AI Act de la Unión Europea y el NIST AI Risk Management
+Framework, e implementarlos como un procedimiento reproducible de seis pasos. El
+marco integra explicabilidad local y global mediante SHAP, evaluación de equidad
+por subgrupos con umbrales declarados previamente, registro estructurado de
+inferencias y generación de artefactos auditables. La aplicación piloto sobre
+dos configuraciones del conjunto CASAS produjo expedientes completos: Aruba, con
+11\,175 inferencias, y una serie multi-hogar, con 7561 inferencias. En ambos
+casos se cubrieron los nueve requerimientos y se obtuvo un veredicto de no
+cumplimiento del sistema evaluado. Los resultados muestran que el marco permite
+transformar principios normativos en evidencia técnica verificable y
+reproducible.}
+
+\newcommand{\palabrasclaveES}{%
+Inteligencia artificial; sensores; aprendizaje automático; explicabilidad;
+equidad; trazabilidad; auditoría
+\revisar{la plantilla pide términos del tesauro de la UNESCO}}
+
+\newcommand{\resumenEN}{%
+Artificial intelligence systems applied to home monitoring of older adults may
+support safe aging in place, but they also create requirements for transparency,
+fairness, and accountability. In Costa Rica, the National Artificial
+Intelligence Strategy establishes these principles without specifying technical
+mechanisms to verify them in concrete systems. This article presents and
+evaluates an operational compliance framework for activity classification
+systems based on passive infrared sensors and other environmental sensors. The
+methodology translated three principles of the national strategy into nine
+operational requirements, aligned them with the European Union AI Act and the
+NIST AI Risk Management Framework, and implemented them as a reproducible
+six-step procedure. The framework integrates local and global explainability
+through SHAP, subgroup fairness evaluation with thresholds declared in advance,
+structured inference logging, and generation of auditable artifacts. The pilot
+application on two CASAS dataset configurations produced complete evidence
+files: Aruba, with 11,175 inferences, and a multi-home series, with 7,561
+inferences. In both cases, all nine requirements were covered and the evaluated
+system received a non-compliance verdict. The results show that the framework
+can transform normative principles into verifiable and reproducible technical
+evidence.}
+
+\newcommand{\palabrasclaveEN}{%
+Artificial intelligence; sensors; machine learning; explainability; fairness;
+traceability; audit}

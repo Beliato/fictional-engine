@@ -1,0 +1,174 @@
+% =============================================================================
+% Referencias del artículo.
+%
+% Cada entrada lleva la fuente contra la que se verificó. Las que tienen DOI se
+% cotejaron con Crossref; las demás, con la página oficial de la publicación.
+% biblatex solo imprime lo que se cita, así que las entradas del bloque final
+% (fuentes que el marco usa y el artículo todavía no cita) no aparecen en el
+% PDF hasta que alguien las cite.
+% =============================================================================
+
+% --- Citadas en el borrador, en el orden de su primera aparición -------------
+
+% Verificada: Crossref, DOI 10.1109/MIS.2010.112.
+@article{cook2012aruba,
+  author       = {Cook, Diane},
+  title        = {Learning Setting-Generalized Activity Models for Smart Spaces},
+  journaltitle = {IEEE Intelligent Systems},
+  volume       = {27},
+  number       = {1},
+  pages        = {32--38},
+  date         = {2012-01},
+  doi          = {10.1109/MIS.2010.112},
+}
+
+% Verificada contra la portada del PDF. OJO: el documento que se ha usado en
+% todo el proyecto se declara "versión simplificada" (p. 3) y remite a la
+% versión completa en www.micitt.go.cr. Las páginas que cita el repositorio
+% (27, 32, 33) son de la simplificada.
+@report{micitt2024enia,
+  author      = {{Ministerio de Ciencia, Innovación, Tecnología y Telecomunicaciones}},
+  title       = {Estrategia Nacional de Inteligencia Artificial de Costa Rica 2024--2027},
+  type        = {Estrategia nacional},
+  institution = {MICITT},
+  location    = {San José, Costa Rica},
+  date        = {2024},
+}
+
+% Número, fecha e ELI verificados; EUR-Lex no carga sin JavaScript, así que el
+% título oficial no se pudo cotejar en línea. Se conserva el título en inglés
+% del borrador; ver README para la alternativa en español.
+@misc{ue2024aiact,
+  author       = {{European Parliament and Council}},
+  title        = {Regulation ({EU}) 2024/1689 of the {European} {Parliament} and of the {Council} laying down harmonised rules on artificial intelligence},
+  howpublished = {Official Journal of the European Union, L series},
+  date         = {2024-07-12},
+  url          = {http://data.europa.eu/eli/reg/2024/1689/oj},
+}
+
+% Verificada: Crossref, DOI 10.6028/NIST.AI.100-1.
+@report{nist2023airmf,
+  author      = {{National Institute of Standards and Technology}},
+  title       = {Artificial Intelligence Risk Management Framework ({AI} {RMF} 1.0)},
+  type        = {NIST AI},
+  number      = {100-1},
+  institution = {NIST},
+  location    = {Gaithersburg, MD, USA},
+  date        = {2023-01},
+  doi         = {10.6028/NIST.AI.100-1},
+}
+
+% Verificada: página oficial de NeurIPS (título, autores, volumen 30). Las
+% páginas 4765--4774 vienen del borrador y la página oficial no las muestra.
+@inproceedings{lundberg2017shap,
+  author    = {Lundberg, Scott M. and Lee, Su-In},
+  title     = {A Unified Approach to Interpreting Model Predictions},
+  booktitle = {Advances in Neural Information Processing Systems 30},
+  date      = {2017},
+  pages     = {4765--4774},
+}
+
+% Verificada: Crossref, DOI 10.1038/s42256-019-0138-9.
+@article{lundberg2020treeshap,
+  author       = {Lundberg, Scott M. and Erion, Gabriel and Chen, Hugh and DeGrave, Alex and Prutkin, Jordan M. and Nair, Bala and Katz, Ronit and Himmelfarb, Jonathan and Bansal, Nisha and Lee, Su-In},
+  title        = {From local explanations to global understanding with explainable {AI} for trees},
+  journaltitle = {Nature Machine Intelligence},
+  volume       = {2},
+  number       = {1},
+  pages        = {56--67},
+  date         = {2020},
+  doi          = {10.1038/s42256-019-0138-9},
+}
+
+% Verificada: Crossref, DOI 10.3390/make3020020, y arXiv 2003.05155.
+% CORREGIDA respecto del borrador: los autores 5 a 7 son Winkler, Peters y
+% Müller. "Ludwig, Lauber-Rönsberg, Klöpper" venía de docs/crisp-ml-q.md, donde
+% se escribió de memoria sin verificar.
+@article{studer2021crispmlq,
+  author       = {Studer, Stefan and Bui, Thanh Binh and Drescher, Christian and Hanuschkin, Alexander and Winkler, Ludwig and Peters, Steven and Müller, Klaus-Robert},
+  title        = {Towards {CRISP-ML(Q)}: A Machine Learning Process Model with Quality Assurance Methodology},
+  journaltitle = {Machine Learning and Knowledge Extraction},
+  volume       = {3},
+  number       = {2},
+  pages        = {392--413},
+  date         = {2021},
+  doi          = {10.3390/make3020020},
+}
+
+% --- Disponibles, todavía sin citar ------------------------------------------
+
+% Verificada: Crossref, DOI 10.1109/MC.2012.328. Es la que pide citar el
+% depósito de Zenodo de la serie hh (piloto multi-hogar).
+@article{cook2013casas,
+  author       = {Cook, Diane J. and Crandall, Aaron S. and Thomas, Brian L. and Krishnan, Narayanan C.},
+  title        = {{CASAS}: A Smart Home in a Box},
+  journaltitle = {Computer},
+  volume       = {46},
+  number       = {7},
+  pages        = {62--69},
+  date         = {2013-07},
+  doi          = {10.1109/MC.2012.328},
+}
+
+% Verificada: registro de Zenodo 15708568 (título, creadora, fecha, versión,
+% licencia CC BY 4.0).
+@misc{cook2025zenodo,
+  author       = {Cook, Diane},
+  title        = {{CASAS} Smart Home dataset -- free living, motion, door, activity labels},
+  howpublished = {Zenodo, versión v1},
+  date         = {2025-06-20},
+  doi          = {10.5281/zenodo.15708568},
+}
+
+% Verificada: Crossref, DOI 10.1145/3458723.
+@article{gebru2021datasheets,
+  author       = {Gebru, Timnit and Morgenstern, Jamie and Vecchione, Briana and Vaughan, Jennifer Wortman and Wallach, Hanna and Daumé III, Hal and Crawford, Kate},
+  title        = {Datasheets for datasets},
+  journaltitle = {Communications of the ACM},
+  volume       = {64},
+  number       = {12},
+  pages        = {86--92},
+  date         = {2021-12},
+  doi          = {10.1145/3458723},
+}
+
+% Verificada: Crossref, DOI 10.1145/3287560.3287596.
+@inproceedings{mitchell2019modelcards,
+  author    = {Mitchell, Margaret and Wu, Simone and Zaldivar, Andrew and Barnes, Parker and Vasserman, Lucy and Hutchinson, Ben and Spitzer, Elena and Raji, Inioluwa Deborah and Gebru, Timnit},
+  title     = {Model Cards for Model Reporting},
+  booktitle = {Proceedings of the Conference on Fairness, Accountability, and Transparency},
+  date      = {2019},
+  pages     = {220--229},
+  doi       = {10.1145/3287560.3287596},
+}
+
+% Verificada: arXiv 1610.02413 (título y autores). Publicada en NeurIPS 29
+% (2016); la página de arXiv no muestra la referencia del congreso.
+@inproceedings{hardt2016equality,
+  author    = {Hardt, Moritz and Price, Eric and Srebro, Nathan},
+  title     = {Equality of Opportunity in Supervised Learning},
+  booktitle = {Advances in Neural Information Processing Systems 29},
+  date      = {2016},
+}
+
+% Verificada: Crossref, DOI 10.1023/A:1010933404324.
+@article{breiman2001rf,
+  author       = {Breiman, Leo},
+  title        = {Random Forests},
+  journaltitle = {Machine Learning},
+  volume       = {45},
+  number       = {1},
+  pages        = {5--32},
+  date         = {2001-10},
+  doi          = {10.1023/A:1010933404324},
+}
+
+% Verificada: página de JMLR, volumen 12.
+@article{pedregosa2011sklearn,
+  author       = {Pedregosa, Fabian and Varoquaux, Gaël and Gramfort, Alexandre and Michel, Vincent and Thirion, Bertrand and Grisel, Olivier and Blondel, Mathieu and Prettenhofer, Peter and Weiss, Ron and Dubourg, Vincent and Vanderplas, Jake and Passos, Alexandre and Cournapeau, David and Brucher, Matthieu and Perrot, Matthieu and Duchesnay, Édouard},
+  title        = {Scikit-learn: Machine Learning in {Python}},
+  journaltitle = {Journal of Machine Learning Research},
+  volume       = {12},
+  pages        = {2825--2830},
+  date         = {2011},
+}
