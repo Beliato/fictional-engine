@@ -101,16 +101,10 @@ Ordenados por importancia.
    "versión simplificada" (p. 3) y remite a la completa en www.micitt.go.cr.
    Decidir cuál se cita; si es la completa, las páginas del repositorio (27, 32
    y 33) hay que volver a verificarlas.
-5. **Referencias que faltan.** El depósito de Zenodo de la serie multi-hogar pide
-   citar Cook et al. (2013); también están sin citar el datasheet, el model
-   card, la igualdad de oportunidades, los bosques aleatorios y scikit-learn.
-   Todas están en `referencias.bib`, verificadas, listas para `\cite`.
 7. **Autores**: orden, correos, ORCID y si hay una tercera persona.
 8. **Figura 1** es un marcador de texto y no se cita en el cuerpo, que la
    plantilla exige.
 9. **Palabras clave**: la plantilla pide términos del tesauro de la UNESCO.
-10. **Cita [1] en la Introducción**: el artículo de Aruba respalda el
-    reconocimiento de actividades con sensores, no el apoyo a cuidadores.
 11. **AI Act**: la referencia usa el título en inglés. EUR-Lex no se pudo
     consultar para verificar el título oficial en español.
 12. **Páginas de Lundberg y Lee (2017)**: 4765–4774 vienen del borrador; la

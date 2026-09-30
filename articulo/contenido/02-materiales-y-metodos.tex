@@ -37,14 +37,12 @@ pasos para generar el expediente de evidencia.
 \subsection{Datos y población de estudio}
 
 Se utilizaron datos públicos del proyecto CASAS, compuesto por eventos de
-sensores ambientales en entornos domiciliarios \cite{cook2012aruba}. La primera
-configuración corresponde al hogar Aruba, con una vivienda, sensores PIR,
-sensores de puerta, sensores de temperatura y actividades anotadas. La segunda
-corresponde a una serie multi-hogar, compuesta por nueve viviendas de personas
-adultas mayores de una comunidad de retiro.
-% El depósito de Zenodo de la serie hh pide citar Cook et al. (2013)
-% [cook2013casas] y el propio conjunto [cook2025zenodo]; están en el .bib.
-\pendiente{citar el depósito de la serie multi-hogar (Zenodo) y el artículo que pide citar}
+sensores ambientales en entornos domiciliarios \cite{cook2013casas}. La primera
+configuración corresponde al hogar Aruba \cite{cook2012aruba}, con una vivienda,
+sensores PIR, sensores de puerta, sensores de temperatura y actividades
+anotadas. La segunda corresponde a una serie multi-hogar, compuesta por nueve
+viviendas de personas adultas mayores de una comunidad de retiro, publicada en
+el depósito oficial de CASAS \cite{cook2025zenodo}.
 En ambos casos, la población observada corresponde a personas adultas mayores
 en viviendas independientes, aunque el proyecto no recolectó datos nuevos ni
 tuvo contacto con participantes humanos.
@@ -61,14 +59,12 @@ de una misma secuencia entre entrenamiento y prueba.
 
 \subsection{Modelo de referencia}
 
-El modelo de referencia fue un clasificador \texttt{RandomForestClassifier} con
-semilla fija, ejecución de un solo hilo y versiones de bibliotecas declaradas.
+El modelo de referencia fue un clasificador \texttt{RandomForestClassifier}
+\cite{breiman2001rf,pedregosa2011sklearn} con semilla fija, ejecución de un solo hilo y versiones de bibliotecas declaradas.
 Su función fue proporcionar inferencias para auditar el marco. La calidad
 predictiva del modelo no se usó como criterio de éxito del estudio, pues el
 propósito fue comprobar si el procedimiento producía evidencia completa y
 reconstruible.
-% Disponibles en el .bib: breiman2001rf (bosques aleatorios) y
-% pedregosa2011sklearn (scikit-learn).
 
 \subsection{Derivación de los requerimientos}
 
@@ -140,20 +136,24 @@ global se obtuvo como la media de las contribuciones absolutas locales, evitando
 un segundo cálculo independiente y manteniendo coherencia entre explicaciones
 locales y globales. Las variables se nombraron por zonas del hogar, por ejemplo
 cocina o dormitorio, para favorecer la comprensión por parte de destinatarios no
-técnicos.
+técnicos. La factibilidad de este tipo de explicaciones sobre eventos de
+sensores en hogares inteligentes está documentada en la literatura del dominio
+\cite{arrotta2022dexar}.
 
 \subsection{Módulo de equidad}
 
-El módulo de equidad evaluó desempeño desagregado y disparidad entre subgrupos.
+El módulo de equidad evaluó desempeño desagregado y disparidad entre subgrupos,
+siguiendo la distinción entre el sesgo originado en los datos y la disparidad
+observada en las predicciones \cite{mehrabi2021survey}.
 En Aruba, los subgrupos fueron contextuales, como franja horaria y tipo de día.
 En la configuración multi-hogar, se incorporó el hogar como subgrupo
 poblacional, pues cada vivienda representa una persona o unidad doméstica
 distinta. Las métricas con efecto en el veredicto fueron diferencia de tasa de
-verdaderos positivos y diferencia de tasa de falsos positivos, ambas con umbral
-de 0,10 declarado antes de la ejecución. También se reportaron como descriptivas
-la diferencia de paridad demográfica y el cociente de tasa de selección.
-% Disponible en el .bib: hardt2016equality, origen de la igualdad de
-% oportunidades (diferencia de TVP).
+verdaderos positivos, que corresponde a la igualdad de oportunidades
+\cite{hardt2016equality}, y diferencia de tasa de falsos positivos, ambas con
+umbral de 0,10 declarado antes de la ejecución. También se reportaron como
+descriptivas la diferencia de paridad demográfica y el cociente de tasa de
+selección.
 
 \subsection{Módulo de trazabilidad}
 
@@ -174,6 +174,6 @@ auditables y verificación de auditabilidad. El paso de declaración de criterio
 selló el hash SHA-256 del archivo de configuración. En la verificación final, el
 marco comprobó que ese hash no hubiera cambiado, que la bitácora fuera válida,
 que existiera cobertura uno a uno entre inferencias esperadas y registradas, y
-que los nueve requerimientos contaran con artefactos presentes.
-% Disponibles en el .bib: gebru2021datasheets y mitchell2019modelcards, que
-% originan el datasheet y el model card del procedimiento.
+que los nueve requerimientos contaran con artefactos presentes. El datasheet del
+conjunto de datos y el model card siguen las propuestas de Gebru et al.
+\cite{gebru2021datasheets} y Mitchell et al. \cite{mitchell2019modelcards}.
