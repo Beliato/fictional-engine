@@ -4,6 +4,25 @@ Versión LaTeX del borrador de Laura Segura
 ([`articulo_tecnologia_en_marcha.md`](../articulo_tecnologia_en_marcha.md)),
 con el formato de la plantilla de **Tecnología en Marcha** (TEC).
 
+## Compilar en la computadora (MiKTeX y TeXworks)
+
+**Todo el artículo, con bibliografía:** doble clic en `compilar.bat`. Corre
+pdfLaTeX → Biber → pdfLaTeX → pdfLaTeX y deja `tecnologia-en-marcha.pdf` en
+esta carpeta. Si algo falla, muestra el error y la línea: `l.20` es la línea
+20 del archivo de sección que se estaba leyendo.
+
+Al abrirlo desde `\\wsl$\...`, la consola puede avisar que "no admite rutas
+UNC". Es un aviso inofensivo: el script entra a la carpeta con `pushd`.
+
+**Mientras se edita texto:** en TeXworks, el botón de compilar con
+**pdfLaTeX** alcanza, desde cualquier archivo de `contenido/`. La primera
+línea de cada uno (`% !TEX root`) le dice a TeXworks que compile el archivo
+principal. Hace falta `compilar.bat` solo cuando cambian las citas o
+`referencias.bib`, porque Biber no corre desde el botón.
+
+Todos los `.tex` declaran `% !TEX encoding = UTF-8 Unicode`, para que las
+tildes no se rompan aunque TeXworks tenga otra codificación por defecto.
+
 ## Compilar en Overleaf
 
 1. Subir el contenido de esta carpeta a un proyecto nuevo (*New Project →
@@ -17,6 +36,7 @@ con el formato de la plantilla de **Tecnología en Marcha** (TEC).
 | Archivo | Contenido |
 |---|---|
 | `tecnologia-en-marcha.tex` | Preámbulo y formato de la plantilla |
+| `compilar.bat` | Compilación completa con bibliografía, en Windows |
 | `contenido/00-metadatos.tex` | Título, autores, resumen, palabras clave |
 | `contenido/01-…06-*.tex` | Una sección por archivo |
 | `contenido/macros.tex` | Marcas de revisión |
