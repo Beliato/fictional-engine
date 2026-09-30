@@ -1,0 +1,13 @@
+# Auxiliares de LaTeX, por si alguien compila en local
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.pdf

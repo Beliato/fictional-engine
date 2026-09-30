@@ -1,0 +1,133 @@
+% Texto: borrador de Laura Segura, con acentos restaurados y citas enlazadas.
+
+\section{Materiales y métodos}
+
+\subsection{Tipo de investigación y enfoque}
+
+La investigación fue de tipo aplicada y de diseño tecnológico. El objeto
+evaluado no fue la optimización predictiva del modelo, sino la capacidad del
+marco para generar evidencia verificable de cumplimiento. Por ello, el modelo de
+aprendizaje automático se trató como sujeto de prueba: se entrenó y selló antes
+de ejecutar el procedimiento de cumplimiento, y no se ajustó posteriormente con
+base en los resultados de equidad o explicabilidad.
+
+La metodología se organizó en cuatro componentes. El primero fue una matriz de
+mapeo principio-requerimiento. El segundo correspondió a tres módulos de
+cumplimiento: explicabilidad, equidad y trazabilidad. El tercero fue un registro
+estructurado de inferencias. El cuarto fue un procedimiento reproducible de seis
+pasos para generar el expediente de evidencia.
+
+\subsection{Datos y población de estudio}
+
+Se utilizaron datos públicos del proyecto CASAS, compuesto por eventos de
+sensores ambientales en entornos domiciliarios \cite{cook2012aruba}. La primera
+configuración corresponde al hogar Aruba, con una vivienda, sensores PIR,
+sensores de puerta, sensores de temperatura y actividades anotadas. La segunda
+corresponde a una serie multi-hogar, compuesta por nueve viviendas de personas
+adultas mayores de una comunidad de retiro.
+% El depósito de Zenodo de la serie hh pide citar Cook et al. (2013)
+% [cook2013casas] y el propio conjunto [cook2025zenodo]; están en el .bib.
+\pendiente{citar el depósito de la serie multi-hogar (Zenodo) y el artículo que pide citar}
+En ambos casos, la población observada corresponde a personas adultas mayores
+en viviendas independientes, aunque el proyecto no recolectó datos nuevos ni
+tuvo contacto con participantes humanos.
+% config.yaml describe a la residente de Aruba como "mujer adulta voluntaria":
+% no dice que sea adulta mayor. Para la serie hh sí consta (comunidad de retiro).
+\revisar{para Aruba, la documentación del conjunto dice ``mujer adulta'', no adulta mayor}
+
+Los eventos se transformaron en ventanas disjuntas de 30 eventos consecutivos.
+Cada ventana generó una fila tabular con conteos por zona del hogar, eventos de
+puerta, variables temporales y, cuando estaban disponibles, lecturas de
+temperatura. La partición de entrenamiento y prueba fue temporal por día, con
+una proporción de prueba de 0,2. Esta decisión evitó mezclar ventanas contiguas
+de una misma secuencia entre entrenamiento y prueba.
+
+\subsection{Modelo de referencia}
+
+El modelo de referencia fue un clasificador \texttt{RandomForestClassifier} con
+semilla fija, ejecución de un solo hilo y versiones de bibliotecas declaradas.
+Su función fue proporcionar inferencias para auditar el marco. La calidad
+predictiva del modelo no se usó como criterio de éxito del estudio, pues el
+propósito fue comprobar si el procedimiento producía evidencia completa y
+reconstruible.
+% Disponibles en el .bib: breiman2001rf (bosques aleatorios) y
+% pedregosa2011sklearn (scikit-learn).
+
+\subsection{Matriz de requerimientos}
+
+La matriz tradujo los principios seleccionados en nueve requerimientos
+operativos. El Cuadro~\ref{cuadro:requerimientos} resume la correspondencia
+entre principio, requerimiento y evidencia esperada.
+
+\begin{table}[htbp]
+  \caption{Requerimientos operativos y evidencia del marco.}
+  \label{cuadro:requerimientos}
+  \small
+  \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth}c>{\raggedright\arraybackslash}X@{}}
+    \toprule
+    Principio & Código & Evidencia técnica y documental \\
+    \midrule
+    Transparencia y explicabilidad & R3.1 & Explicación local por inferencia mediante atribución cuantificada de variables. \\
+    Transparencia y explicabilidad & R3.2 & Importancia global agregada sobre el conjunto de evaluación. \\
+    Transparencia y explicabilidad & R3.3 & Traducción de resultados a lenguaje comprensible y model card. \\
+    \midrule
+    Equidad y no discriminación & R4.1 & Desempeño desagregado por subgrupo. \\
+    Equidad y no discriminación & R4.2 & Métricas de disparidad con umbrales declarados antes de medir. \\
+    Equidad y no discriminación & R4.3 & Datasheet del conjunto de datos con procedencia, composición y limitaciones. \\
+    \midrule
+    Responsabilidad & R5.1 & Bitácora estructurada y persistente de inferencias. \\
+    Responsabilidad & R5.2 & Model card con propósito, desempeño, limitaciones y condiciones de uso. \\
+    Responsabilidad & R5.3 & Verificación de reconstrucción y atribución ex post de decisiones. \\
+    \bottomrule
+  \end{tabularx}
+  \fuente{elaboración propia.}
+\end{table}
+
+\subsection{Módulo de explicabilidad}
+
+El módulo de explicabilidad utilizó SHAP con TreeExplainer para calcular
+atribuciones locales de las variables de entrada
+\cite{lundberg2017shap,lundberg2020treeshap}. Para cada inferencia del conjunto
+de prueba se registró la clase predicha, el valor base, las contribuciones de
+las variables y una referencia al artefacto de explicación. La importancia
+global se obtuvo como la media de las contribuciones absolutas locales, evitando
+un segundo cálculo independiente y manteniendo coherencia entre explicaciones
+locales y globales. Las variables se nombraron por zonas del hogar, por ejemplo
+cocina o dormitorio, para favorecer la comprensión por parte de destinatarios no
+técnicos.
+
+\subsection{Módulo de equidad}
+
+El módulo de equidad evaluó desempeño desagregado y disparidad entre subgrupos.
+En Aruba, los subgrupos fueron contextuales, como franja horaria y tipo de día.
+En la configuración multi-hogar, se incorporó el hogar como subgrupo
+poblacional, pues cada vivienda representa una persona o unidad doméstica
+distinta. Las métricas con efecto en el veredicto fueron diferencia de tasa de
+verdaderos positivos y diferencia de tasa de falsos positivos, ambas con umbral
+de 0,10 declarado antes de la ejecución. También se reportaron como descriptivas
+la diferencia de paridad demográfica y el cociente de tasa de selección.
+% Disponible en el .bib: hardt2016equality, origen de la igualdad de
+% oportunidades (diferencia de TVP).
+
+\subsection{Módulo de trazabilidad}
+
+La trazabilidad se implementó mediante una bitácora JSONL \emph{append-only}.
+Cada línea registró identificador de evento, marca temporal UTC, hash de la
+entrada procesada, salida del modelo, confianza, versión del modelo, versión del
+marco, referencia a la explicación local, responsable declarado y versión del
+esquema. El uso de hashes evitó persistir datos crudos sensibles en la
+bitácora, sin impedir la reconstrucción técnica de la decisión dentro del
+expediente.
+
+\subsection{Procedimiento de aplicación}
+
+El procedimiento siguió seis pasos alineados con las funciones del NIST AI RMF:
+caracterización del sistema, documentación del conjunto de datos, declaración de
+criterios de evaluación, ejecución de pruebas técnicas, generación de artefactos
+auditables y verificación de auditabilidad. El paso de declaración de criterios
+selló el hash SHA-256 del archivo de configuración. En la verificación final, el
+marco comprobó que ese hash no hubiera cambiado, que la bitácora fuera válida,
+que existiera cobertura uno a uno entre inferencias esperadas y registradas, y
+que los nueve requerimientos contaran con artefactos presentes.
+% Disponibles en el .bib: gebru2021datasheets y mitchell2019modelcards, que
+% originan el datasheet y el model card del procedimiento.

@@ -1,0 +1,49 @@
+% Texto: borrador de Laura Segura, con acentos restaurados y citas enlazadas.
+
+\section{Discusión}
+
+Los resultados muestran que es posible operacionalizar principios regulatorios
+mediante requerimientos discretos, pruebas computacionales y artefactos
+auditables. La principal contribución del marco es que no se limita a declarar
+alineación con la Estrategia Nacional de IA, el AI Act o el NIST AI RMF, sino
+que produce evidencias verificables: hashes de configuración, registros
+estructurados, reportes, model card, datasheet y matriz de cobertura.
+
+La explicabilidad basada en SHAP resultó adecuada para un modelo de árboles y
+datos tabulares. Su ventaja principal fue conectar cada inferencia con
+atribuciones cuantificadas y, posteriormente, agregar esas atribuciones para
+describir el comportamiento global. No obstante, esta selección también impone
+una limitación: el desempeño computacional y la validez de las explicaciones
+dependen de la familia de modelos y del modo de perturbación seleccionado.
+
+La evaluación de equidad evidenció una restricción importante del dominio. Los
+conjuntos públicos de sensores domiciliarios suelen incluir pocos metadatos
+demográficos, por lo que no siempre permiten comparar categorías protegidas
+como género, etnia, capacidad económica o nivel formativo. El piloto
+multi-hogar mitigó parcialmente esta restricción al comparar desempeño entre
+viviendas, pero no la elimina por completo. En consecuencia, el marco debe
+entenderse como una herramienta para producir evidencia disponible y declarar
+sus límites, no como garantía absoluta de ausencia de discriminación.
+% Límites que los expedientes declaran y el borrador todavía no menciona:
+%   - la franja horaria sale de la hora, que es también variable de entrada:
+%     parte de la disparidad entre franjas es por diseño (config.yaml);
+%   - la exactitud global del piloto multi-hogar es 0,22--0,43 por vivienda,
+%     contra 0,70 en Aruba; un modelo más débil tiene más lugar para mostrar
+%     disparidad (D52);
+%   - no se midió robustez ni la varianza entre semillas (D56).
+\pendiente{decidir si se incluyen los límites que declara el expediente: la hora como variable de entrada, la exactitud baja del multi-hogar, robustez y varianza entre semillas}
+
+La trazabilidad fue el componente transversal que permitió unir resultados
+técnicos y responsabilidad. Sin una bitácora persistente, las explicaciones y
+los reportes quedarían desconectados de decisiones concretas. Con el esquema
+propuesto, cada decisión puede reconstruirse a partir de su identificador,
+entrada hasheada, salida, confianza, versión del modelo, explicación y
+responsable declarado.
+
+Una diferencia relevante frente a procesos generales de aseguramiento de calidad
+en aprendizaje automático, como CRISP-ML(Q), es que el marco no busca optimizar
+el modelo ni seleccionar la mejor arquitectura \cite{studer2021crispmlq}. Su
+propósito es auditar un sistema dado. Por ello, un veredicto de no cumplimiento
+es un resultado válido: revela que el sistema evaluado no satisface los
+criterios declarados, pero también demuestra que el procedimiento puede
+producir evidencia para sostener esa conclusión.

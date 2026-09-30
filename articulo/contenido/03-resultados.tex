@@ -1,0 +1,103 @@
+% Texto: borrador de Laura Segura, con acentos restaurados y citas enlazadas.
+
+\section{Resultados}
+
+El marco fue ejecutado sobre dos configuraciones piloto. El
+Cuadro~\ref{cuadro:resultados} sintetiza los resultados generales del
+expediente.
+
+\begin{table}[htbp]
+  \caption{Resultados generales de las aplicaciones piloto.}
+  \label{cuadro:resultados}
+  \footnotesize
+  % Las columnas numéricas son p{} alineadas a la derecha, no r: así el
+  % encabezado ("Inferencias registradas") puede partirse en dos líneas.
+  % TeX no corta con guion la primera palabra de un párrafo, así que cada
+  % columna tiene que caber su palabra más larga ("Requerimientos").
+  \begin{tabularx}{\linewidth}{@{}%
+      >{\raggedright\arraybackslash}X%
+      >{\raggedright\arraybackslash}p{0.23\linewidth}%
+      >{\raggedleft\arraybackslash}p{0.10\linewidth}%
+      >{\raggedleft\arraybackslash}p{0.12\linewidth}%
+      >{\raggedleft\arraybackslash}p{0.15\linewidth}%
+      >{\raggedright\arraybackslash}p{0.12\linewidth}@{}}
+    \toprule
+    Piloto & Configuración & Viviendas & Inferencias registradas & Requerimientos cubiertos & Veredicto del sistema evaluado \\
+    \midrule
+    CASAS Aruba    & \texttt{config.yaml}         & 1 & 11\,175 & 9 de 9 & No cumple \\
+    CASAS serie hh & \texttt{config.hogares.yaml} & 9 & 7561    & 9 de 9 & No cumple \\
+    \bottomrule
+  \end{tabularx}
+  \fuente{elaboración propia con base en la ejecución documentada del repositorio.}
+\end{table}
+
+Los dos expedientes generaron la totalidad de los artefactos previstos: ficha de
+caracterización, datasheet, protocolo de evaluación, explicaciones locales,
+importancia global, resultados de desempeño desagregado, métricas de equidad,
+bitácora de inferencias, reporte de explicabilidad, reporte de equidad, model
+card, reporte de cumplimiento, bitácora de ejecución y manifiesto de hashes. En
+ambos pilotos, los nueve requerimientos de la matriz quedaron respaldados por
+evidencia presente y verificable.
+% El manifiesto sella 14 artefactos: los de esta lista menos el propio
+% manifiesto, más la figura de importancia global.
+
+El resultado de no cumplimiento no indica un fallo del marco, sino un hallazgo
+sobre el sistema evaluado. El procedimiento completo se ejecutó y produjo
+evidencia suficiente para sostener el veredicto. Esto es consistente con el
+criterio de éxito definido para el piloto: el marco debía demostrar que podía
+generar un expediente de evidencia, incluso cuando la evidencia revelara
+incumplimientos del sistema examinado.
+
+\begin{figure}[htbp]
+  \centering
+  \fbox{\parbox{0.9\linewidth}{\centering\small
+    Sistema IA basado en sensores PIR $\rightarrow$ matriz
+    principio-requerimiento $\rightarrow$ módulos de explicabilidad, equidad y
+    trazabilidad $\rightarrow$ procedimiento de seis pasos $\rightarrow$
+    expediente de evidencia verificable}}
+  \par\smallskip\pendiente{reemplazar por el diagrama definitivo y citarlo en el texto}
+  \caption{Arquitectura funcional del marco operativo de cumplimiento. Fuente: elaboración propia.}
+  \label{fig:arquitectura}
+\end{figure}
+
+En el módulo de explicabilidad, cada inferencia registrada en la bitácora quedó
+vinculada con una explicación local. Esta relación satisface simultáneamente
+R3.1 y R5.3, porque permite partir de una decisión registrada y llegar al
+artefacto que explica las variables que contribuyeron a la predicción. La
+agregación de esas explicaciones permitió construir una importancia global de
+variables, asociada con R3.2. El uso de nombres de zonas del hogar permitió
+generar enunciados interpretables para cuidadores y otros destinatarios no
+técnicos, en concordancia con R3.3.
+
+En el módulo de equidad, los resultados fueron desagregados por los subgrupos
+declarados en la configuración. La existencia de umbrales sellados antes de
+ejecutar las pruebas permitió diferenciar la medición de disparidades de una
+interpretación posterior ajustada a los resultados. Cuando una combinación de
+actividad, subgrupo y métrica no tuvo soporte suficiente, el marco la marcó como
+no evaluable en lugar de contarla como aprobada. Esta decisión evitó convertir
+ausencia de evidencia en evidencia de cumplimiento.
+% Hallazgos disponibles en los expedientes (artefactos/reporte_equidad.md y
+% artefactos/hogares/reporte_equidad.md, D52):
+%   Aruba: 44 combinaciones, 32 evaluadas, 12 no evaluables, 4 incumplen, las
+%     cuatro en franja horaria y por diferencia de TVP: Sleeping 0,351,
+%     Otro 0,170, Meal_Preparation 0,169, Relax 0,128. Bed_to_Toilet no es
+%     evaluable en TVP (8 casos de madrugada, 0 en el resto).
+%   Multi-hogar: 108 evaluables, 29 incumplen (14 entre hogares, 12 entre
+%     franjas, 3 entre tipos de día). Mayores entre hogares: Work 0,872,
+%     Eat 0,810, Cook 0,503. Cook: hh107 tiene más datos (943) y la peor TVP
+%     (0,292); hh103, 414 y la mejor (0,795).
+\pendiente{los hallazgos concretos de equidad de cada piloto: qué combinaciones incumplen y por qué}
+
+En el módulo de trazabilidad, la bitácora estructurada permitió verificar
+unicidad de identificadores, marcas temporales UTC, rango válido de confianza,
+versión de modelo, versión de esquema, responsable declarado y existencia de la
+explicación referenciada. La verificación final agregó la cobertura entre
+conjunto de prueba y registros producidos, de modo que una bitácora válida pero
+incompleta no pudiera sostener el cumplimiento.
+
+Adicionalmente, el repositorio documentó 272 pruebas automatizadas en verde.
+Estas pruebas cubrieron configuración, preparación de datos, modelado,
+explicabilidad, equidad, trazabilidad, procedimiento y documentación. Aunque las
+pruebas no sustituyen una auditoría externa, aportan evidencia de
+reproducibilidad del procedimiento y reducen el riesgo de divergencia entre el
+diseño normativo y la implementación computacional.

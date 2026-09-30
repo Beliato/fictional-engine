@@ -1,0 +1,19 @@
+% =============================================================================
+% Marcas de revisión del borrador.
+%
+%   \pendiente{...}  algo que falta escribir o decidir (rojo)
+%   \revisar{...}    una afirmación del texto que hay que verificar (naranja)
+%
+% Antes del envío, cambiar \notastrue por \notasfalse: las marcas desaparecen
+% del PDF sin tocar el texto.
+% =============================================================================
+\newif\ifnotas
+\notastrue
+
+\newcommand{\pendiente}[1]{%
+  \ifnotas{\color{red!70!black}\textbf{[Pendiente:} #1\textbf{]}}\fi}
+\newcommand{\revisar}[1]{%
+  \ifnotas{\color{orange!85!black}\textbf{[Revisar:} #1\textbf{]}}\fi}
+
+% "Fuente:" debajo de cuadros, como pide la plantilla.
+\newcommand{\fuente}[1]{\par\smallskip{\centering\small Fuente: #1\par}}
