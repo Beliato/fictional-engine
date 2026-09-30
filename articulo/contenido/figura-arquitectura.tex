@@ -1,0 +1,63 @@
+% !TEX root = ../tecnologia-en-marcha.tex
+% !TEX encoding = UTF-8 Unicode
+% =============================================================================
+% Arquitectura del marco operativo de cumplimiento.
+%
+% Redibujo de la Figura 2 de PIA02 ("Arquitectura del marco operativo de
+% cumplimiento", capítulo 5). En el documento de Word está hecha con formas y
+% no como imagen, así que no se puede extraer: se reconstruyó con los mismos
+% componentes y el mismo flujo. Si se prefiere la original, exportarla desde
+% Word como PNG a 300 dpi y reemplazar este archivo por un \includegraphics.
+%
+% Ancho total: unos 15 cm, dentro de los 15,6 cm de texto de la plantilla.
+% =============================================================================
+\begin{tikzpicture}[
+    font=\footnotesize,
+    >={Latex[length=2mm]},
+    bloque/.style={draw, rounded corners=3pt, inner sep=5pt},
+    columna/.style={bloque, align=center, text width=#1},
+    pieza/.style={draw, fill=gray!10, rounded corners=1.5pt, align=center,
+                  inner sep=3pt, text width=4.3cm},
+  ]
+
+  % --- Marco operativo: la columna central, con sus cuatro componentes -------
+  \node[align=center, text width=4.3cm, font=\footnotesize\bfseries]
+    (tmarco) {Marco operativo de cumplimiento};
+  \node[pieza, below=4pt of tmarco] (matriz) {Matriz principio-requerimiento};
+  \node[pieza, below=3pt of matriz] (modulos)
+    {Módulos de cumplimiento\\[1pt]
+     {\scriptsize Transparencia y explicabilidad\\
+                  Equidad y no discriminación\\
+                  Responsabilidad y trazabilidad}};
+  \node[pieza, below=3pt of modulos] (registro) {Registro estructurado};
+  \node[pieza, below=3pt of registro] (procedimiento)
+    {Procedimiento de aplicación};
+  \node[bloque, fit=(tmarco)(matriz)(modulos)(registro)(procedimiento)]
+    (marco) {};
+
+  % --- Entrada, verificación y salida ----------------------------------------
+  \node[columna=2.2cm, left=6mm of marco] (entrada)
+    {\textbf{Entrada}\\[4pt]
+     Sistema de IA con sensores PIR\\[3pt]
+     Modelo, datos y contexto};
+  \node[columna=2.5cm, right=6mm of marco] (verificacion)
+    {\textbf{Verificación}\\[4pt]
+     9 requerimientos operativos\\[3pt]
+     Pruebas técnicas\\[3pt]
+     Artefactos auditables};
+  \node[columna=2.0cm, right=6mm of verificacion] (salida)
+    {\textbf{Salida}\\[4pt]
+     Expediente de evidencia verificable};
+
+  \draw[->, thick] (entrada) -- (marco);
+  \draw[->, thick] (marco) -- (verificacion);
+  \draw[->, thick] (verificacion) -- (salida);
+
+  % --- Franja del NIST AI RMF, a todo lo ancho --------------------------------
+  \coordinate (izq) at ([yshift=-5mm]entrada.west |- marco.south);
+  \coordinate (der) at ([yshift=-11mm]salida.east |- marco.south);
+  \draw[rounded corners=3pt, fill=gray!5] (izq) rectangle (der);
+  \node at ($(izq)!0.5!(der)$)
+    {Alineación con el NIST AI RMF: Mapear $\rightarrow$ Medir
+     $\rightarrow$ Gobernar / Gestionar};
+\end{tikzpicture}

@@ -57,12 +57,13 @@ El PDF muestra dos tipos de marca:
 Antes del envío, en `contenido/macros.tex` cambiar `\notastrue` por
 `\notasfalse`: las marcas desaparecen sin tocar el texto.
 
-## Qué cambió respecto del borrador
+## Historia del texto
 
-Cuatro cosas; la redacción es la de Laura, palabra por palabra. Se comprobó
-comparando las palabras del borrador con las de los `.tex`, sin acentos ni
-comandos: las únicas diferencias son la numeración de cuadros y figura, que
-genera LaTeX, y el punto 3.
+### La conversión del borrador
+
+La primera versión en LaTeX conservó la redacción de Laura palabra por
+palabra. Se comprobó comparando las palabras del borrador con las de los
+`.tex`, sin acentos ni comandos. Cambiaron cuatro cosas:
 
 1. **Acentos restaurados.** El .md y el .docx venían sin tildes.
 2. **La referencia de CRISP-ML(Q) estaba mal.** Los autores 5 a 7 son
@@ -70,49 +71,87 @@ genera LaTeX, y el punto 3.
    Lauber-Rönsberg, Klöpper" venía de `docs/crisp-ml-q.md`, donde se escribió
    de memoria.
 3. **La segunda frase de Agradecimientos** era una nota para las personas
-   autoras; ahora es una marca de pendiente.
-4. **Bloque de autores**: donde el borrador tenía los marcadores de la
-   plantilla, ahora están los nombres de las dos personas autoras de la tesis y
-   la afiliación a la Universidad CENFOTEC. Correos, ORCID y orden quedan
-   pendientes.
+   autoras y pasó a marca de pendiente.
+4. **Bloque de autores**: los nombres de las dos personas autoras de la tesis
+   y la afiliación a la Universidad CENFOTEC, donde había marcadores.
 
-Las citas `[1]`–`[7]` pasaron a `\cite{}` y biblatex las numera en el mismo
-orden del borrador.
+Después, las personas autoras quitaron la sección "Declaración sobre el uso
+de inteligencia artificial" (ver pendiente 3).
 
-Después de la conversión, las personas autoras quitaron la sección
-"Declaración sobre el uso de inteligencia artificial" (ver pendiente 3).
+### La alineación con la investigación (PIA02)
+
+Una revisión contra el documento de investigación y contra los expedientes de
+los pilotos encontró tres desvíos. Se corrigieron en cuatro cambios, y desde
+entonces el texto ya no es solo el del borrador:
+
+1. **Hallazgos.** Resultados reporta lo que encontró el marco —las variables
+   dominantes, el desempeño como contexto, las 4 combinaciones de Aruba
+   (Cuadro 3) y las 29 del multi-hogar, con el caso de Cook—, y la Discusión,
+   los cuatro límites que declara el expediente. Todas las cifras salen de los
+   expedientes.
+2. **Diseño metodológico.** Design Science Research, enfoque mixto y tres
+   fases, y una subsección nueva sobre cómo se derivaron los requerimientos
+   (PIA02, capítulos 3 y 4). Las tres citas textuales de la ENIA se cotejaron
+   con el PDF.
+3. **Literatura.** De 7 a 21 referencias, cada una donde PIA02 la usa, todas
+   verificadas.
+4. **Título y figura.** El título nombra la ENIA y a las personas adultas
+   mayores. La Figura 1 redibuja la arquitectura de PIA02 (Figura 2), que en
+   Word está hecha con formas y no se puede extraer como imagen; pasó a
+   Materiales y métodos, donde el texto la cita.
 
 ## Pendientes para decidir
 
 Ordenados por importancia.
 
-1. **Fuente de "hh107 tiene dos residentes".** D52 explica el caso de `Cook`
-   con ese dato, pero no consta en el expediente ni en el crudo del
-   repositorio. Resultados presenta el caso sin esa explicación hasta tener la
-   fuente. Tampoco tiene cita la relevancia clínica de Bed\_to\_Toilet.
+1. **Fuente de "hh107 tiene dos residentes".** D52 explica el caso de Cook con
+   ese dato, pero no consta en el expediente ni en el crudo del repositorio.
+   Resultados presenta el caso sin esa explicación hasta tener la fuente.
+   Tampoco tiene cita la relevancia clínica de Bed\_to\_Toilet.
 2. **Aruba y "adultas mayores".** Materiales y métodos dice que en ambos pilotos
    la población son personas adultas mayores. La documentación del conjunto
    describe a la residente de Aruba como "mujer adulta voluntaria".
 3. **Declaración de uso de IA.** Las personas autoras la quitaron por ahora.
    Antes del envío, revisar si la política de la revista la exige: GitHub
-   Copilot armó el borrador inicial, y Claude hizo la conversión a LaTeX y la
-   verificación de referencias.
-4. **Versión de la ENIA.** El PDF usado en todo el proyecto se declara
-   "versión simplificada" (p. 3) y remite a la completa en www.micitt.go.cr.
-   Decidir cuál se cita; si es la completa, las páginas del repositorio (27, 32
-   y 33) hay que volver a verificarlas.
-7. **Autores**: orden, correos, ORCID y si hay una tercera persona.
-8. **Figura 1** es un marcador de texto y no se cita en el cuerpo, que la
-   plantilla exige.
+   Copilot armó el borrador inicial, y Claude hizo la conversión a LaTeX, la
+   verificación de referencias y la alineación con PIA02.
+4. **Dos puntos de la revisión que no entraron en los cuatro cambios:** los
+   *refinamientos* que el piloto introdujo respecto de PIA02 (métricas que
+   deciden, descarte de Fairlearn, piloto multi-hogar, nombres de zona), que
+   el objetivo específico 3 pide documentar; y la *contribución dual
+   ENIA–AI Act* para el sector healthtech, central en PIA02 y ausente en el
+   artículo.
+5. **Título.** Es una propuesta; la traducción al inglés también, y la
+   plantilla pide evitar traductores automáticos.
+6. **Figura 1.** Es un redibujo. Si se prefiere la original, exportarla desde
+   Word como PNG a 300 dpi y reemplazar `contenido/figura-arquitectura.tex`.
+7. **Versión de la ENIA.** La página de créditos dice *Versión 1.0, 24 de
+   octubre de 2024*, con ISBN 978-9968-732-94-9; PIA02 la cita como "Versión
+   2.6", que el documento no menciona. El mismo PDF se declara "versión
+   simplificada" (p. 3) y remite a la completa en www.micitt.go.cr.
+8. **Autores**: orden, correos, ORCID y si hay una tercera persona.
 9. **Palabras clave**: la plantilla pide términos del tesauro de la UNESCO.
-11. **AI Act**: la referencia usa el título en inglés. EUR-Lex no se pudo
+10. **AI Act**: la referencia usa el título en inglés. EUR-Lex no se pudo
     consultar para verificar el título oficial en español.
-12. **Páginas de Lundberg y Lee (2017)**: 4765–4774 vienen del borrador; la
-    página oficial de NeurIPS no las muestra.
+11. **Páginas de Lundberg y Lee (2017)**: 4765–4774 vienen del borrador y de
+    PIA02; la página oficial de NeurIPS no las muestra.
 
-## Una referencia que no está, a propósito
+## Correcciones para PIA02
 
-Las fichas de caracterización de los expedientes citan **"Kim et al., 2022"**.
-Ningún archivo del repositorio tiene la referencia completa y no se pudo
-identificar el trabajo. No está en `referencias.bib`, y el artículo no la
-cita.
+La revisión encontró en el documento de investigación cosas que no deberían
+pasar al artículo:
+
+- La ENIA como "Versión 2.6": es la 1.0 (ver pendiente 7).
+- "La ENIA reconoce textualmente la edad como variable protegida" (1.4, 2.5,
+  4.1.2, 5.4 y Tabla 5). El texto dice "respetando las diferencias de edad,
+  etnia, género…", en el contexto de la accesibilidad (p. 32). "Variable
+  protegida" es una interpretación, no una cita textual.
+- La cita "realizar auditorías y pruebas continuas para identificar y corregir
+  cualquier sesgo potencial" está en la p. 33, no en la 32 (4.1.2).
+- El principio 3 se cita en "pp. 31-32"; está en la p. 32.
+- Mitchell et al. (2019) como "FAccT '19": en 2019 el congreso se llamaba
+  FAT\*.
+
+Kim et al. (2022), que citan las fichas de caracterización de los
+expedientes, sí existe: es una de las revisiones de alcance de PIA02, y el
+artículo la cita.
