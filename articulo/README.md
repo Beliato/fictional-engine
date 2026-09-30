@@ -59,6 +59,9 @@ genera LaTeX, y el punto 3.
 Las citas `[1]`–`[7]` pasaron a `\cite{}` y biblatex las numera en el mismo
 orden del borrador.
 
+Después de la conversión, las personas autoras quitaron la sección
+"Declaración sobre el uso de inteligencia artificial" (ver pendiente 3).
+
 ## Pendientes para decidir
 
 Ordenados por importancia.
@@ -70,8 +73,10 @@ Ordenados por importancia.
 2. **Aruba y "adultas mayores".** Materiales y métodos dice que en ambos pilotos
    la población son personas adultas mayores. La documentación del conjunto
    describe a la residente de Aruba como "mujer adulta voluntaria".
-3. **Declaración de uso de IA.** Menciona GitHub Copilot. La conversión a LaTeX
-   y la verificación de referencias se hicieron con Claude.
+3. **Declaración de uso de IA.** Las personas autoras la quitaron por ahora.
+   Antes del envío, revisar si la política de la revista la exige: GitHub
+   Copilot armó el borrador inicial, y Claude hizo la conversión a LaTeX y la
+   verificación de referencias.
 4. **Versión de la ENIA.** El PDF usado en todo el proyecto se declara
    "versión simplificada" (p. 3) y remite a la completa en www.micitt.go.cr.
    Decidir cuál se cita; si es la completa, las páginas del repositorio (27, 32
