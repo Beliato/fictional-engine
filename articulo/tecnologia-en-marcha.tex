@@ -15,7 +15,9 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{newtxtext,newtxmath}
-\usepackage[spanish,es-tabla,es-noshorthands]{babel}
+% Sin es-tabla: esa opción cambia "Cuadro" por "Tabla", y la plantilla usa
+% "Cuadro".
+\usepackage[spanish,es-noshorthands]{babel}
 \usepackage[spanish=mexican]{csquotes}
 \usepackage[letterpaper,top=2.5cm,bottom=2.5cm,left=3cm,right=3cm]{geometry}
 \usepackage{graphicx}
@@ -27,6 +29,17 @@
 \usepackage{caption}
 \usepackage[style=ieee,backend=biber]{biblatex}
 \addbibresource{referencias.bib}
+% biblatex-ieee pone la coma dentro de las comillas, como en inglés. La
+% plantilla la deja afuera, como en español: “Título”, Revista.
+\AtBeginBibliography{\stdpunctuation}
+% Abreviaturas de la plantilla ("vol. 5, no. 1, pp. 1-9") en lugar de las de
+% biblatex en español ("n.º", "págs.").
+\DefineBibliographyStrings{spanish}{%
+  number = {no\adddot},
+  pages  = {pp\adddot},
+  page   = {p\adddot},
+  url    = {Disponible en},
+}
 \usepackage[hidelinks]{hyperref}
 
 \input{contenido/macros}
@@ -54,7 +67,7 @@
   \vspace{1.4em}
 \end{center}
 
-\noindent\bloqueAutores
+{\setlength{\parindent}{0pt}\bloqueAutores}
 
 % --- Resumen y abstract ----------------------------------------------------------
 \section{Resumen}

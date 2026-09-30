@@ -9,8 +9,18 @@ expediente.
 \begin{table}[htbp]
   \caption{Resultados generales de las aplicaciones piloto.}
   \label{cuadro:resultados}
-  \small
-  \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}rrr>{\raggedright\arraybackslash}p{0.13\linewidth}@{}}
+  \footnotesize
+  % Las columnas numéricas son p{} alineadas a la derecha, no r: así el
+  % encabezado ("Inferencias registradas") puede partirse en dos líneas.
+  % TeX no corta con guion la primera palabra de un párrafo, así que cada
+  % columna tiene que caber su palabra más larga ("Requerimientos").
+  \begin{tabularx}{\linewidth}{@{}%
+      >{\raggedright\arraybackslash}X%
+      >{\raggedright\arraybackslash}p{0.23\linewidth}%
+      >{\raggedleft\arraybackslash}p{0.10\linewidth}%
+      >{\raggedleft\arraybackslash}p{0.12\linewidth}%
+      >{\raggedleft\arraybackslash}p{0.15\linewidth}%
+      >{\raggedright\arraybackslash}p{0.12\linewidth}@{}}
     \toprule
     Piloto & Configuración & Viviendas & Inferencias registradas & Requerimientos cubiertos & Veredicto del sistema evaluado \\
     \midrule
