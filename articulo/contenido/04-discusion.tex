@@ -26,14 +26,19 @@ multi-hogar mitigó parcialmente esta restricción al comparar desempeño entre
 viviendas, pero no la elimina por completo. En consecuencia, el marco debe
 entenderse como una herramienta para producir evidencia disponible y declarar
 sus límites, no como garantía absoluta de ausencia de discriminación.
-% Límites que los expedientes declaran y el borrador todavía no menciona:
-%   - la franja horaria sale de la hora, que es también variable de entrada:
-%     parte de la disparidad entre franjas es por diseño (config.yaml);
-%   - la exactitud global del piloto multi-hogar es 0,22--0,43 por vivienda,
-%     contra 0,70 en Aruba; un modelo más débil tiene más lugar para mostrar
-%     disparidad (D52);
-%   - no se midió robustez ni la varianza entre semillas (D56).
-\pendiente{decidir si se incluyen los límites que declara el expediente: la hora como variable de entrada, la exactitud baja del multi-hogar, robustez y varianza entre semillas}
+
+% Límites declarados en los expedientes (config.yaml, D52 y D56).
+Los hallazgos de equidad deben leerse con cuatro límites que el propio
+expediente declara. Primero, en Aruba la franja horaria se deriva de la hora,
+que es además variable de entrada del modelo, por lo que parte de la disparidad
+entre franjas es atribuible al diseño y no a un sesgo emergente. Segundo, la
+exactitud en la configuración multi-hogar fue baja, entre 0,225 y 0,433 por
+vivienda, lo que amplía el margen para observar disparidades. Tercero, el
+procedimiento no midió la robustez del sistema ante entradas ruidosas o
+degradadas. Cuarto, las disparidades provienen de un único entrenamiento con
+semilla fija: sin estimar su variación entre semillas, una diferencia cercana
+al umbral, como 0,107 en Watch\_TV, no permite distinguir una disparidad del
+sistema de una variación del entrenamiento.
 
 La trazabilidad fue el componente transversal que permitió unir resultados
 técnicos y responsabilidad. Sin una bitácora persistente, las explicaciones y

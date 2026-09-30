@@ -86,10 +86,10 @@ Después de la conversión, las personas autoras quitaron la sección
 
 Ordenados por importancia.
 
-1. **Faltan los hallazgos de equidad.** Resultados dice que el marco midió
-   disparidades pero no cuáles: las 4 combinaciones de Aruba, las 29 del
-   multi-hogar y el diagnóstico de `Cook` en `hh107`. Las cifras están como
-   comentario en `contenido/03-resultados.tex`.
+1. **Fuente de "hh107 tiene dos residentes".** D52 explica el caso de `Cook`
+   con ese dato, pero no consta en el expediente ni en el crudo del
+   repositorio. Resultados presenta el caso sin esa explicación hasta tener la
+   fuente. Tampoco tiene cita la relevancia clínica de Bed\_to\_Toilet.
 2. **Aruba y "adultas mayores".** Materiales y métodos dice que en ambos pilotos
    la población son personas adultas mayores. La documentación del conjunto
    describe a la residente de Aruba como "mujer adulta voluntaria".
@@ -105,10 +105,6 @@ Ordenados por importancia.
    citar Cook et al. (2013); también están sin citar el datasheet, el model
    card, la igualdad de oportunidades, los bosques aleatorios y scikit-learn.
    Todas están en `referencias.bib`, verificadas, listas para `\cite`.
-6. **Límites que declara el expediente y el artículo no**: la franja horaria
-   sale de la hora, que es variable de entrada; la exactitud del multi-hogar es
-   0,22–0,43 contra 0,70 en Aruba; no se midió robustez ni varianza entre
-   semillas.
 7. **Autores**: orden, correos, ORCID y si hay una tercera persona.
 8. **Figura 1** es un marcador de texto y no se cita en el cuerpo, que la
    plantilla exige.
