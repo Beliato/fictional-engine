@@ -1,25 +1,11 @@
 % !TEX root = ../tecnologia-en-marcha.tex
 % !TEX encoding = UTF-8 Unicode
 % Texto: borrador de Laura Segura, con acentos restaurados y citas enlazadas.
+% Reordenado para abrir con la brecha de cumplimiento y presentar el monitoreo
+% de personas adultas mayores como dominio de aplicación: el alcance de la
+% investigación es la batería de pruebas, no el cuidado (PIA02, 1.1 y 1.7.2).
 
 \section{Introducción}
-
-Los sensores ambientales instalados en viviendas han sido utilizados para
-reconocer actividades de la vida diaria sin recurrir a cámaras ni micrófonos
-\cite{kim2022inhome,requena2024independence}. En particular, los sensores de infrarrojo pasivo, junto con sensores magnéticos de
-puerta y sensores de temperatura, permiten registrar patrones de movimiento
-compatibles con tareas como dormir, cocinar, comer o desplazarse dentro del
-hogar. Esta clase de sistemas resulta relevante para el monitoreo no intrusivo
-de personas adultas mayores, pues puede aportar información de apoyo a
-cuidadores y servicios de acompañamiento \cite{park2025aging}. Sin embargo,
-cuando las inferencias automatizadas se usan sobre poblaciones vulnerables, el
-desempeño técnico del clasificador no es suficiente para justificar su uso.
-% Las dos afirmaciones siguientes resumen la lectura que hace PIA02 (1.9 y
-% 2.3.2) de esas revisiones.
-Las revisiones recientes señalan, además, que la mayoría de los estudios del
-campo se concentran en demostrar el desempeño técnico de los modelos y no en
-evaluar su transparencia, su equidad o su gobernanza
-\cite{park2025aging,habibovic2025aging}.
 
 La Estrategia Nacional de Inteligencia Artificial de Costa Rica plantea
 principios rectores para el desarrollo y uso responsable de sistemas de IA,
@@ -34,6 +20,25 @@ obstante, estos marcos suelen expresarse en un nivel normativo o metodológico
 que no siempre indica cómo producir evidencia técnica verificable sobre un
 sistema específico.
 
+El dominio de aplicación de este estudio son los sistemas que reconocen
+actividades de la vida diaria a partir de sensores ambientales instalados en
+viviendas, sin recurrir a cámaras ni micrófonos
+\cite{kim2022inhome,requena2024independence}. En particular, los sensores de
+infrarrojo pasivo, junto con sensores magnéticos de puerta y sensores de
+temperatura, permiten registrar patrones de movimiento compatibles con tareas
+como dormir, cocinar, comer o desplazarse dentro del hogar. Esta clase de
+sistemas se ha propuesto para el monitoreo no intrusivo de personas adultas
+mayores \cite{park2025aging}, una población para la que la propia ENIA reconoce
+un potencial significativo de la IA \cite[p.~27]{micitt2024enia}. Sin embargo,
+cuando las inferencias automatizadas se usan sobre poblaciones vulnerables, el
+desempeño técnico del clasificador no es suficiente para justificar su uso.
+% Las dos afirmaciones siguientes resumen la lectura que hace PIA02 (1.9 y
+% 2.3.2) de esas revisiones.
+Las revisiones recientes señalan, además, que la mayoría de los estudios del
+campo se concentran en demostrar el desempeño técnico de los modelos y no en
+evaluar su transparencia, su equidad o su gobernanza
+\cite{park2025aging,habibovic2025aging}.
+
 El problema abordado en este estudio es la brecha entre principios regulatorios
 de alto nivel y mecanismos computacionales reproducibles para auditarlos en
 sistemas de IA basados en sensores domiciliarios. En este dominio, la brecha es
@@ -45,7 +50,8 @@ menos representados.
 El objetivo de la investigación fue diseñar, implementar y verificar un marco
 operativo que traduzca tres principios de la Estrategia Nacional de IA de Costa
 Rica en requerimientos técnicos, pruebas computacionales y artefactos auditables
-aplicables a un clasificador de actividades basado en sensores PIR. El artículo
-resume la arquitectura del marco, la metodología de implementación y los
-resultados obtenidos en dos aplicaciones piloto sobre datos públicos del
-proyecto CASAS.
+aplicables a un clasificador de actividades basado en sensores PIR. El objeto
+de evaluación es el marco, no el sistema de monitoreo: el clasificador actúa
+como sujeto de prueba. El artículo resume la arquitectura del marco, la
+metodología de implementación y los resultados obtenidos en dos aplicaciones
+piloto sobre datos públicos del proyecto CASAS.

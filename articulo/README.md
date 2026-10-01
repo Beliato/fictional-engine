@@ -100,6 +100,18 @@ entonces el texto ya no es solo el del borrador:
    Word está hecha con formas y no se puede extraer como imagen; pasó a
    Materiales y métodos, donde el texto la cita.
 
+### El enfoque
+
+El borrador abría con el caso de uso —apoyar la permanencia en el hogar y a
+los cuidadores—, y eso hacía parecer que el proyecto era sobre el cuidado. El
+alcance de la investigación es la batería de pruebas que verifica el
+cumplimiento de la ENIA; el monitoreo de personas adultas mayores es el
+dominio donde se aplica, y el proyecto con cuidadoras fue solo el antecedente
+(PIA02, 1.1 y 1.7.2). El resumen y la Introducción ahora abren con la brecha
+de cumplimiento, y la Introducción dice explícitamente que lo evaluado es el
+marco. Se quitó además una mención a la relevancia clínica de Bed\_to\_Toilet:
+la validación clínica está fuera de alcance (1.7.2).
+
 ## Pendientes para decidir
 
 Ordenados por importancia.
@@ -107,7 +119,6 @@ Ordenados por importancia.
 1. **Fuente de "hh107 tiene dos residentes".** D52 explica el caso de Cook con
    ese dato, pero no consta en el expediente ni en el crudo del repositorio.
    Resultados presenta el caso sin esa explicación hasta tener la fuente.
-   Tampoco tiene cita la relevancia clínica de Bed\_to\_Toilet.
 2. **Aruba y "adultas mayores".** Materiales y métodos dice que en ambos pilotos
    la población son personas adultas mayores. La documentación del conjunto
    describe a la residente de Aruba como "mujer adulta voluntaria".
