@@ -218,9 +218,12 @@ datos:
       distribución anterior, cuyo README pedía no redistribuir sin permiso
       expreso de CASAS; por eso el crudo se mantiene fuera del repositorio.
     instrucciones_descarga: >-
-      En https://zenodo.org/records/15708568, `data.zip` trae un archivo por
-      hogar y `labeled_data.zip` los hogares anotados por un anotador externo.
-      Colocar el crudo en `datos/crudos/` con el nombre declarado en
+      La copia anotada no está en el depósito oficial
+      (https://zenodo.org/records/15708568): ahí Aruba se publica sin
+      etiquetas de actividad, y `labeled_data.zip` trae otras series. La copia
+      usada proviene de la distribución anterior de CASAS, obtenida de un
+      repositorio de terceros, y su procedencia se verificó contra el release
+      oficial. Colocar el crudo en `datos/crudos/` con el nombre declarado en
       `datos.archivo_crudo`, y no versionarlo nunca.
 
   # Cortes que definen el subgrupo de equidad `franja_horaria`. Es una

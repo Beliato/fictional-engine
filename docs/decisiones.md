@@ -1,7 +1,8 @@
-# Decisiones de diseño (para revisar)
+# Decisiones de diseño
 
-Registro de decisiones tomadas al montar el esqueleto. Cada una es revisable
-y reversible antes de empezar a implementar.
+Registro de las decisiones del proyecto, en el orden en que se tomaron y con
+su porqué. Las que se resolvieron o reemplazaron después lo dicen en su propio
+texto; las que todavía esperan una decisión llevan un **Revisar**.
 
 ## D1 — Los 6 pasos del marco — RESUELTA
 Al montar el esqueleto los pasos se definieron como: preparar datos · entrenar
