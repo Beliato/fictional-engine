@@ -38,7 +38,7 @@ pipeline: ## Ejecuta el marco completo (6 pasos) usando $(CONFIG)
 	 echo "==> código de salida: $$codigo (2 = hallazgos; 1 = error)"; \
 	 [ $$codigo -ne 1 ]
 
-demo: ## Corrida de demostración: los 6 pasos sobre $(DIAS) días, en minutos
+demo: ## Corrida de demostración: los 6 pasos sobre 20 días (cambiar con DIAS=n), en menos de un minuto
 	$(PY) scripts/preparar_demo.py $(DIAS)
 	@$(PY) -m src.procedimiento.orquestador --config config.demo.yaml --id demo; \
 	 codigo=$$?; \

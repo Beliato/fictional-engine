@@ -54,16 +54,21 @@ make lock           # congela el cierre transitivo -> requirements.lock (versió
 
 ## Datos
 
-El dataset **no se versiona** y **no puede redistribuirse**: la licencia de
-CASAS exige permiso expreso. Coloque el crudo anotado de Aruba en:
+Los datos **no se versionan**: el crudo vive en `datos/crudos/`, que git
+ignora. Cada piloto necesita el suyo.
 
-```
-datos/crudos/aruba.txt
-```
+### Piloto de Aruba (`config.yaml`)
 
-La ruta está en `config.yaml` (`datos.archivo_crudo`). Los datasets de CASAS
-se publican hoy en [Zenodo](https://zenodo.org/communities/casas); los
-enlaces directos del sitio antiguo devuelven 404.
+Crudo anotado en `datos/crudos/aruba.txt`, la ruta que declara
+`datos.archivo_crudo`.
+
+La copia anotada **no se puede bajar del depósito oficial**. El depósito de
+CASAS en [Zenodo](https://zenodo.org/records/15708568), bajo CC BY 4.0,
+publica Aruba sin etiquetas de actividad, y sus 82 hogares anotados son de
+otras series (D53). La copia usada viene de la distribución anterior de CASAS,
+obtenida de un repositorio de terceros, cuyo README pedía no redistribuirla sin
+permiso expreso. Su procedencia se verificó contra el release oficial, evento
+por evento (D22).
 
 **Formato esperado** — un evento por línea, campos separados por espacios; la
 anotación marca el inicio y el fin de cada intervalo de actividad:
@@ -75,18 +80,36 @@ anotación marca el inicio y el fin de cada intervalo de actividad:
 
 Aruba son 1.719.552 eventos utilizables entre 2010-11-04 y 2011-06-11, con 31
 sensores PIR (`M001`-`M031`), 3 de puerta y 5 de temperatura, y 11 actividades
-anotadas. Procedencia y composición se documentan en
-`plantillas/datasheet.md`; las decisiones de preparación, en
+anotadas. Procedencia y composición se documentan en el datasheet que genera
+el paso 2 (`artefactos/datasheet.md`); las decisiones de preparación, en
 [`docs/decisiones.md`](docs/decisiones.md) (D21-D26).
+
+### Piloto multi-hogar (`config.hogares.yaml`)
+
+Nueve viviendas de personas adultas mayores, de la serie `hh`. Bajar
+`labeled_data.zip` del mismo [depósito de Zenodo](https://zenodo.org/records/15708568),
+descomprimirlo y preparar las viviendas:
+
+```bash
+python scripts/preparar_hogares.py <directorio_de_labeled_data> 30
+```
+
+El script aplica la regla de selección, declarada antes de medir: los hogares
+`hh101` a `hh110` con al menos 30 días de registro, truncados a sus primeros
+30. Deja un CSV por vivienda en `datos/crudos/hogares/`. El formato y la
+lectura de varias viviendas se explican en
+[`docs/aplicar-a-otro-dataset.md`](docs/aplicar-a-otro-dataset.md).
 
 ### Características
 
 Los eventos se agrupan en ventanas disjuntas de 30 y cada ventana produce una
 fila. Las características se nombran **por zona del hogar**
 (`conteo_Kitchen`), no por sensor (`conteo_M018`): el R3.3 exige que la
-explicación sea legible por un cuidador, y `M018` no lo es. El mapeo sensor →
-zona vive en `config.yaml` y se derivó cruzando Aruba con el release
-consolidado de CASAS — 1.596.509 eventos coincidentes, 100 % de acuerdo.
+explicación sea comprensible para destinatarios no técnicos, y `M018` no lo
+es. En Aruba, el mapeo sensor → zona vive en `config.yaml` y se derivó
+cruzando la copia anotada con el release consolidado de CASAS: 1.596.509
+eventos coincidentes, 100 % de acuerdo. En la serie `hh` los sensores ya
+vienen nombrados por la habitación donde están instalados.
 
 > **Partición temporal, no aleatoria.** Los últimos días van a prueba. Los
 > eventos están autocorrelacionados: repartirlos al azar deja ventanas
@@ -99,7 +122,7 @@ consolidado de CASAS — 1.596.509 eventos coincidentes, 100 % de acuerdo.
 make test                 # batería de pruebas
 make pipeline             # ejecuta los 6 pasos del marco (usa config.yaml)
 make pipeline CONFIG=config.hogares.yaml   # el piloto multi-hogar
-make demo                 # los 6 pasos sobre 20 días, en segundos (ver docs/demo.md)
+make demo                 # los 6 pasos sobre 20 días, en menos de un minuto (ver docs/demo.md)
 make verificar-registro   # verifica la bitácora de inferencias
 make clean                # borra artefactos generados (no toca datos/)
 make help                 # lista todos los comandos
@@ -193,32 +216,38 @@ Cada línea de `artefactos/bitacora/inferencias.jsonl` registra:
 `id_evento`, `marca_temporal` (UTC ISO 8601), `referencia_entrada` (hash
 SHA-256 de la fila de entrada — no se guardan datos crudos), `salida_modelo`,
 `confianza`, `version_modelo`, `version_marco`, `referencia_explicacion`,
-`responsable`, `version_esquema`. Definido en `src/trazabilidad/esquema.py`.
+`responsable`, `version_esquema` y, opcionalmente, `metadatos`. Definido en
+`src/trazabilidad/esquema.py`.
 
 ## Estructura del repositorio
 
 ```
 .
-├── config.yaml              configuración central (única fuente de verdad)
+├── config.yaml              piloto de Aruba: toda la parametrización en un archivo
+├── config.hogares.yaml      piloto multi-hogar
 ├── requirements.txt         dependencias directas, versiones exactas
 ├── requirements.lock        cierre transitivo (generado por `make lock`)
-├── Makefile                 setup · test · pipeline · verificar-registro · clean
+├── Makefile                 setup · lock · test · pipeline · demo · verificar-registro · clean
 ├── pyproject.toml           configuración de pytest (sin empaquetar)
 ├── .python-version          3.11
-├── scripts/setup.sh         crea el venv e instala todo
+├── scripts/                 setup.sh · preparar_demo.py · preparar_hogares.py
 ├── src/                     código de producción (ver Arquitectura)
-├── tests/                   pytest (skeletons + esquema implementado)
+├── tests/                   batería de pruebas (pytest)
 ├── datos/                   crudos/ e intermedios/  (ignorados por git)
-├── artefactos/              salidas generadas       (ignorado por git)
+├── artefactos/              expedientes generados   (ignorado por git)
 ├── plantillas/              model card, datasheet, reportes
 ├── notebooks/               solo exploración
-└── docs/                    arquitectura · marco operativo · decisiones · CRISP-ML(Q)
+├── docs/                    arquitectura · marco operativo · decisiones · demo · CRISP-ML(Q)
+├── articulo/                artículo en LaTeX para Tecnología en Marcha
+└── articulo_tecnologia_en_marcha.md, .docx   borrador original del artículo
 ```
 
 ## Documentación
 
 - [`docs/arquitectura.md`](docs/arquitectura.md) — módulos, principios de diseño, flujo de datos.
 - [`docs/marco_operativo.md`](docs/marco_operativo.md) — los 6 pasos y la articulación normativa.
-- [`docs/decisiones.md`](docs/decisiones.md) — decisiones tomadas al montar el esqueleto, para revisar.
+- [`docs/decisiones.md`](docs/decisiones.md) — registro de las decisiones del proyecto, con su porqué.
 - [`docs/aplicar-a-otro-dataset.md`](docs/aplicar-a-otro-dataset.md) — **el contrato de ingesta**: qué debe aportar un equipo para evaluar su propio sistema con este marco.
 - [`docs/crisp-ml-q.md`](docs/crisp-ml-q.md) — dónde se sitúa el marco frente a CRISP-ML(Q): coincidencias, divergencias declaradas y huecos abiertos.
+- [`docs/demo.md`](docs/demo.md) — cómo mostrar el marco funcionando en vivo.
+- [`articulo/README.md`](articulo/README.md) — cómo compilar el artículo, su historia y los pendientes.

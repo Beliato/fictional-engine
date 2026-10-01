@@ -1,8 +1,11 @@
 # Artículo — Tecnología en Marcha
 
-Versión LaTeX del borrador de Laura Segura
-([`articulo_tecnologia_en_marcha.md`](../articulo_tecnologia_en_marcha.md)),
-con el formato de la plantilla de **Tecnología en Marcha** (TEC).
+Artículo en LaTeX con el formato de la plantilla de **Tecnología en Marcha**
+(TEC). Partió del borrador de Laura Segura
+([`articulo_tecnologia_en_marcha.md`](../articulo_tecnologia_en_marcha.md)) y
+después se alineó con el documento de investigación y con los resultados de los
+pilotos: la sección [Historia del texto](#historia-del-texto) cuenta qué cambió
+y por qué.
 
 ## Compilar en la computadora (MiKTeX y TeXworks)
 
@@ -39,6 +42,7 @@ tildes no se rompan aunque TeXworks tenga otra codificación por defecto.
 | `compilar.bat` | Compilación completa con bibliografía, en Windows |
 | `contenido/00-metadatos.tex` | Título, autores, resumen, palabras clave |
 | `contenido/01-…06-*.tex` | Una sección por archivo |
+| `contenido/figura-arquitectura.tex` | Figura 1, dibujada en TikZ |
 | `contenido/macros.tex` | Marcas de revisión |
 | `referencias.bib` | Bibliografía verificada |
 
