@@ -1,7 +1,7 @@
 # Artículo — Tecnología en Marcha
 
 Artículo en LaTeX con el formato de la plantilla de **Tecnología en Marcha**
-(TEC). Partió del borrador de Laura Segura
+(TEC). Partió de un primer borrador de las personas autoras
 ([`articulo_tecnologia_en_marcha.md`](../articulo_tecnologia_en_marcha.md)) y
 después se alineó con el documento de investigación y con los resultados de los
 pilotos: la sección [Historia del texto](#historia-del-texto) cuenta qué cambió
@@ -65,7 +65,7 @@ Antes del envío, en `contenido/macros.tex` cambiar `\notastrue` por
 
 ### La conversión del borrador
 
-La primera versión en LaTeX conservó la redacción de Laura palabra por
+La primera versión en LaTeX conservó la redacción del borrador palabra por
 palabra. Se comprobó comparando las palabras del borrador con las de los
 `.tex`, sin acentos ni comandos. Cambiaron cuatro cosas:
 
