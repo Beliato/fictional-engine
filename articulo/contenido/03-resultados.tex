@@ -1,3 +1,5 @@
+% !TEX root = ../tecnologia-en-marcha.tex
+% !TEX encoding = UTF-8 Unicode
 % Texto: borrador de Laura Segura, con acentos restaurados y citas enlazadas.
 
 \section{Resultados}
@@ -48,18 +50,6 @@ criterio de éxito definido para el piloto: el marco debía demostrar que podía
 generar un expediente de evidencia, incluso cuando la evidencia revelara
 incumplimientos del sistema examinado.
 
-\begin{figure}[htbp]
-  \centering
-  \fbox{\parbox{0.9\linewidth}{\centering\small
-    Sistema IA basado en sensores PIR $\rightarrow$ matriz
-    principio-requerimiento $\rightarrow$ módulos de explicabilidad, equidad y
-    trazabilidad $\rightarrow$ procedimiento de seis pasos $\rightarrow$
-    expediente de evidencia verificable}}
-  \par\smallskip\pendiente{reemplazar por el diagrama definitivo y citarlo en el texto}
-  \caption{Arquitectura funcional del marco operativo de cumplimiento. Fuente: elaboración propia.}
-  \label{fig:arquitectura}
-\end{figure}
-
 En el módulo de explicabilidad, cada inferencia registrada en la bitácora quedó
 vinculada con una explicación local. Esta relación satisface simultáneamente
 R3.1 y R5.3, porque permite partir de una decisión registrada y llegar al
@@ -69,6 +59,16 @@ variables, asociada con R3.2. El uso de nombres de zonas del hogar permitió
 generar enunciados interpretables para cuidadores y otros destinatarios no
 técnicos, en concordancia con R3.3.
 
+% Fuente: artefactos/reporte_explicabilidad.md y
+% artefactos/hogares/reporte_explicabilidad.md (media de |SHAP|).
+En Aruba, las variables con mayor importancia global, medida como la media del
+valor absoluto de SHAP, fueron el movimiento en el sillón (0,0887), en la cocina
+(0,0780) y en el dormitorio (0,0447), seguidas de la duración de la ventana y la
+hora del día. En la configuración multi-hogar encabezaron la cocina (0,0452), el
+baño (0,0440) y el dormitorio (0,0406). En ambos casos, las variables
+dominantes son zonas del hogar, lo que permite contrastar el comportamiento del
+modelo con el conocimiento del dominio sobre dónde ocurre cada actividad.
+
 En el módulo de equidad, los resultados fueron desagregados por los subgrupos
 declarados en la configuración. La existencia de umbrales sellados antes de
 ejecutar las pruebas permitió diferenciar la medición de disparidades de una
@@ -76,17 +76,69 @@ interpretación posterior ajustada a los resultados. Cuando una combinación de
 actividad, subgrupo y métrica no tuvo soporte suficiente, el marco la marcó como
 no evaluable en lugar de contarla como aprobada. Esta decisión evitó convertir
 ausencia de evidencia en evidencia de cumplimiento.
-% Hallazgos disponibles en los expedientes (artefactos/reporte_equidad.md y
-% artefactos/hogares/reporte_equidad.md, D52):
-%   Aruba: 44 combinaciones, 32 evaluadas, 12 no evaluables, 4 incumplen, las
-%     cuatro en franja horaria y por diferencia de TVP: Sleeping 0,351,
-%     Otro 0,170, Meal_Preparation 0,169, Relax 0,128. Bed_to_Toilet no es
-%     evaluable en TVP (8 casos de madrugada, 0 en el resto).
-%   Multi-hogar: 108 evaluables, 29 incumplen (14 entre hogares, 12 entre
-%     franjas, 3 entre tipos de día). Mayores entre hogares: Work 0,872,
-%     Eat 0,810, Cook 0,503. Cook: hh107 tiene más datos (943) y la peor TVP
-%     (0,292); hh103, 414 y la mejor (0,795).
-\pendiente{los hallazgos concretos de equidad de cada piloto: qué combinaciones incumplen y por qué}
+
+% Todas las cifras de esta parte salen de los expedientes: model_card.md,
+% reporte_equidad.md y equidad/desempeno_desagregado.csv de cada piloto.
+Como referencia para interpretar las disparidades, el modelo alcanzó una
+exactitud de 0,704 y un F1 macro de 0,432 en Aruba, y de 0,326 y 0,276 en la
+configuración multi-hogar, con una exactitud por vivienda entre 0,225 y 0,433.
+Estas cifras no forman parte del criterio de éxito del estudio, pero condicionan
+la lectura de los resultados de equidad: un clasificador de desempeño modesto
+deja más margen para que aparezcan diferencias entre subgrupos.
+
+En Aruba se evaluaron 32 de las 44 combinaciones de subgrupo, actividad y
+métrica con efecto en el veredicto; las 12 restantes no alcanzaron el soporte
+mínimo de 30 casos por tasa. Cuatro combinaciones superaron el umbral
+(Cuadro~\ref{cuadro:aruba}). Las cuatro corresponden a la franja horaria y a la
+diferencia de TVP: el modelo reconoció peor ciertas actividades según la hora
+del día, mientras que ninguna combinación de tasa de falsos positivos ni de tipo
+de día superó el umbral. Parte de esta disparidad puede deberse al diseño, pues
+la franja se deriva de la hora, que es también una variable de entrada del
+modelo. La mayor diferencia, en Sleeping, compara solo la madrugada y la noche,
+porque la mañana y la tarde quedaron por debajo del soporte mínimo.
+
+\begin{table}[htbp]
+  \caption{Combinaciones que superan el umbral de 0,10 en Aruba.}
+  \label{cuadro:aruba}
+  \small
+  \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X*{5}{r}@{}}
+    \toprule
+    & & \multicolumn{4}{c}{TVP por franja horaria} \\
+    \cmidrule(l){3-6}
+    Actividad & Diferencia de TVP & Madrugada & Mañana & Tarde & Noche \\
+    \midrule
+    Sleeping         & 0,351 & 0,970 & 0,944* & 0,500* & 0,619 \\
+    Otro             & 0,170 & 0,522 & 0,692  & 0,530  & 0,622 \\
+    Meal\_Preparation & 0,169 & 0,880 & 0,870  & 0,798  & 0,712 \\
+    Relax            & 0,128 & 0,835 & 0,901  & 0,773  & 0,820 \\
+    \bottomrule
+  \end{tabularx}
+  \par\smallskip{\footnotesize * Menos de 30 casos: fuera de la comparación.\par}
+  \fuente{reporte de equidad del expediente de Aruba.}
+\end{table}
+
+Entre las combinaciones no evaluables está Bed\_to\_Toilet, los traslados
+nocturnos al baño: la prueba contiene 8 casos en la madrugada y ninguno en las
+demás franjas. El marco no puede afirmar que el sistema reconozca por igual
+esta actividad; sí verificó que sus falsas alarmas se mantuvieran dentro del
+umbral en todas las franjas.
+
+En la configuración multi-hogar se evaluaron 108 de 150 combinaciones y 29
+superaron el umbral: 14 entre viviendas, 12 entre franjas horarias y 3 entre
+tipos de día. A diferencia de Aruba, aquí los subgrupos corresponden a personas
+distintas y no a condiciones de contexto, como plantea el requerimiento R4.1.
+Las mayores diferencias entre viviendas se dieron en la TVP de Work (0,872),
+Eat (0,810), Cook (0,503), Wash\_Dishes (0,447) y Sleep (0,425).
+
+El caso de Cook muestra que la disparidad no se explica solo por la cantidad de
+datos. La vivienda hh107, la de más casos de esa actividad en la prueba (243),
+obtuvo la TVP más baja (0,292), mientras que hh103, con 122, obtuvo la más alta
+(0,795). En Sleep, en cambio, hh107 superó a hh104 (0,867 frente a 0,442), las
+dos únicas viviendas con soporte suficiente para esa actividad. El desempeño
+desigual depende, así, de la combinación entre vivienda y actividad.
+% D52 atribuye el caso de hh107 a que es la única vivienda con dos residentes.
+% El dato no consta en el expediente ni en el crudo del repositorio.
+\revisar{D52 atribuye la diferencia de hh107 a que tiene dos residentes; hace falta la fuente de ese dato para incluirlo}
 
 En el módulo de trazabilidad, la bitácora estructurada permitió verificar
 unicidad de identificadores, marcas temporales UTC, rango válido de confianza,

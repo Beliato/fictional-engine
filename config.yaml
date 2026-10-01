@@ -332,9 +332,8 @@ equidad:
     - >-
       Las actividades con pocos casos en la prueba pueden quedar no
       evaluables. Entre ellas está Bed_to_Toilet, los traslados nocturnos al
-      baño, clínicamente relevantes por el riesgo de caídas: este dataset no
-      permite comprobar si se reconocen igual de bien en cada categoría, solo
-      si sus falsas alarmas se reparten por igual.
+      baño: este dataset no permite comprobar si se reconocen igual de bien en
+      cada categoría, solo si sus falsas alarmas se reparten por igual.
   # --- Protocolo de medición (R4.2) ---------------------------------------
   # Todo lo que sigue se fija ANTES de calcular ninguna métrica (D8) y el
   # paso 3 lo sella por hash (D13). Justificación en D42-D44.

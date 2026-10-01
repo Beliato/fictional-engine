@@ -1,3 +1,5 @@
+% !TEX program = pdflatex
+% !TEX encoding = UTF-8 Unicode
 % =============================================================================
 % Artículo para Tecnología en Marcha (TEC).
 %
@@ -25,6 +27,8 @@
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,fit,calc,arrows.meta}
 \usepackage{titlesec}
 \usepackage{caption}
 \usepackage[style=ieee,backend=biber]{biblatex}
@@ -32,6 +36,9 @@
 % biblatex-ieee pone la coma dentro de las comillas, como en inglés. La
 % plantilla la deja afuera, como en español: “Título”, Revista.
 \AtBeginBibliography{\stdpunctuation}
+% Holgura para partir líneas en la bibliografía, donde abundan títulos largos
+% sin puntos de corte (evita que una referencia se salga del margen).
+\AtBeginBibliography{\setlength{\emergencystretch}{1.5em}}
 % Abreviaturas de la plantilla ("vol. 5, no. 1, pp. 1-9") en lugar de las de
 % biblatex en español ("n.º", "págs.").
 \DefineBibliographyStrings{spanish}{%
@@ -39,6 +46,9 @@
   pages  = {pp\adddot},
   page   = {p\adddot},
   url    = {Disponible en},
+  % El estilo IEEE no traduce el número de artículo al español: sin esto,
+  % biblatex imprime la clave interna ("artno") en negrita.
+  artno  = {art\adddot\ no\adddot},
 }
 \usepackage[hidelinks]{hyperref}
 

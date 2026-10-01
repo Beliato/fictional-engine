@@ -8,3 +8,7 @@
 * text=auto eol=lf
 *.sh text eol=lf
 Makefile text eol=lf
+
+# La excepción: los .bat van con CRLF. cmd.exe procesa mal las etiquetas de
+# goto en un archivo con LF, y articulo/compilar.bat depende de ellas.
+*.bat text eol=crlf

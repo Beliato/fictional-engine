@@ -1,33 +1,56 @@
+% !TEX root = ../tecnologia-en-marcha.tex
+% !TEX encoding = UTF-8 Unicode
 % Texto: borrador de Laura Segura, con acentos restaurados y citas enlazadas.
 
 \section{Materiales y métodos}
 
 \subsection{Tipo de investigación y enfoque}
 
-La investigación fue de tipo aplicada y de diseño tecnológico. El objeto
+% Diseño metodológico de la investigación: PIA02, capítulo 3 (3.1 a 3.4 y
+% Tabla 3).
+La investigación fue de tipo aplicada, con un componente de desarrollo
+orientado a la creación y evaluación de un artefacto, conforme a la
+investigación en ciencia del diseño (Design Science Research)
+\cite{hevner2004dsr}. Su alcance fue exploratorio-descriptivo y su enfoque,
+mixto: combinó un análisis documental cualitativo de los marcos normativos y de
+la literatura con pruebas computacionales cuantitativas sobre un modelo
+entrenado con datos de sensores. El diseño fue no experimental y se organizó en
+tres fases, una por objetivo específico: el análisis regulatorio, que produjo la
+matriz de requerimientos; el diseño del marco; y su aplicación piloto sobre
+datos públicos.
+
+El objeto
 evaluado no fue la optimización predictiva del modelo, sino la capacidad del
 marco para generar evidencia verificable de cumplimiento. Por ello, el modelo de
 aprendizaje automático se trató como sujeto de prueba: se entrenó y selló antes
 de ejecutar el procedimiento de cumplimiento, y no se ajustó posteriormente con
 base en los resultados de equidad o explicabilidad.
 
-La metodología se organizó en cuatro componentes. El primero fue una matriz de
+% "El marco" y no "la metodología": los cuatro componentes son del artefacto
+% (PIA02, 5.1).
+El marco resultante se organizó en cuatro componentes
+(Figura~\ref{fig:arquitectura}). El primero fue una matriz de
 mapeo principio-requerimiento. El segundo correspondió a tres módulos de
 cumplimiento: explicabilidad, equidad y trazabilidad. El tercero fue un registro
 estructurado de inferencias. El cuarto fue un procedimiento reproducible de seis
 pasos para generar el expediente de evidencia.
 
+\begin{figure}[htbp]
+  \centering
+  \input{contenido/figura-arquitectura}
+  \caption{Arquitectura funcional del marco operativo de cumplimiento. Fuente: elaboración propia.}
+  \label{fig:arquitectura}
+\end{figure}
+
 \subsection{Datos y población de estudio}
 
 Se utilizaron datos públicos del proyecto CASAS, compuesto por eventos de
-sensores ambientales en entornos domiciliarios \cite{cook2012aruba}. La primera
-configuración corresponde al hogar Aruba, con una vivienda, sensores PIR,
-sensores de puerta, sensores de temperatura y actividades anotadas. La segunda
-corresponde a una serie multi-hogar, compuesta por nueve viviendas de personas
-adultas mayores de una comunidad de retiro.
-% El depósito de Zenodo de la serie hh pide citar Cook et al. (2013)
-% [cook2013casas] y el propio conjunto [cook2025zenodo]; están en el .bib.
-\pendiente{citar el depósito de la serie multi-hogar (Zenodo) y el artículo que pide citar}
+sensores ambientales en entornos domiciliarios \cite{cook2013casas}. La primera
+configuración corresponde al hogar Aruba \cite{cook2012aruba}, con una vivienda,
+sensores PIR, sensores de puerta, sensores de temperatura y actividades
+anotadas. La segunda corresponde a una serie multi-hogar, compuesta por nueve
+viviendas de personas adultas mayores de una comunidad de retiro, publicada en
+el depósito oficial de CASAS \cite{cook2025zenodo}.
 En ambos casos, la población observada corresponde a personas adultas mayores
 en viviendas independientes, aunque el proyecto no recolectó datos nuevos ni
 tuvo contacto con participantes humanos.
@@ -44,14 +67,41 @@ de una misma secuencia entre entrenamiento y prueba.
 
 \subsection{Modelo de referencia}
 
-El modelo de referencia fue un clasificador \texttt{RandomForestClassifier} con
-semilla fija, ejecución de un solo hilo y versiones de bibliotecas declaradas.
+El modelo de referencia fue un clasificador \texttt{RandomForestClassifier}
+\cite{breiman2001rf,pedregosa2011sklearn} con semilla fija, ejecución de un solo hilo y versiones de bibliotecas declaradas.
 Su función fue proporcionar inferencias para auditar el marco. La calidad
 predictiva del modelo no se usó como criterio de éxito del estudio, pues el
 propósito fue comprobar si el procedimiento producía evidencia completa y
 reconstruible.
-% Disponibles en el .bib: breiman2001rf (bosques aleatorios) y
-% pedregosa2011sklearn (scikit-learn).
+
+\subsection{Derivación de los requerimientos}
+
+% Fase 1 de la investigación: PIA02, capítulo 4. Las tres citas textuales se
+% cotejaron con el PDF de la ENIA; la segunda está en la p. 33, no en la 32.
+Los requerimientos se derivaron mediante un análisis documental con síntesis
+temática de la ENIA \cite{micitt2024enia}, el Reglamento (UE) 2024/1689
+\cite{ue2024aiact} y el NIST AI RMF \cite{nist2023airmf}, complementado con
+literatura seleccionada mediante un protocolo de revisión sistemática. Cada
+exigencia se examinó con cuatro criterios: la existencia de un mandato
+explícito, la disponibilidad de un mecanismo técnico para verificarlo, la
+presencia de un artefacto documental que permitiera auditarlo y su adaptación
+al dominio de los sensores PIR. La ausencia de alguno de estos componentes se
+registró como una brecha de operacionalización.
+
+El análisis mostró el mismo patrón en los tres principios: la ENIA formula una
+exigencia verificable sin definir el procedimiento para demostrarla. Establece
+que la implementación de sistemas de IA \enquote{debe ser auditable}
+\cite[p.~32]{micitt2024enia}, que corresponde \enquote{realizar auditorías y
+pruebas continuas para identificar y corregir cualquier sesgo potencial}
+\cite[p.~33]{micitt2024enia} y que las decisiones influenciadas por estos
+sistemas deben poder \enquote{ser atribuidas a personas físicas o jurídicas}
+\cite[p.~33]{micitt2024enia}, pero no indica métodos de explicación, métricas,
+umbrales ni una arquitectura de registro. Para cada mandato se identificó una
+obligación del AI Act de nivel prescriptivo comparable ---transparencia,
+gobernanza de datos y registro de eventos--- y una función del NIST AI RMF, y
+se formuló un requerimiento operativo cuando esa combinación permitía
+especificar una evidencia técnica concreta: una explicación verificable, una
+medición de equidad o un registro de trazabilidad.
 
 \subsection{Matriz de requerimientos}
 
@@ -94,20 +144,24 @@ global se obtuvo como la media de las contribuciones absolutas locales, evitando
 un segundo cálculo independiente y manteniendo coherencia entre explicaciones
 locales y globales. Las variables se nombraron por zonas del hogar, por ejemplo
 cocina o dormitorio, para favorecer la comprensión por parte de destinatarios no
-técnicos.
+técnicos. La factibilidad de este tipo de explicaciones sobre eventos de
+sensores en hogares inteligentes está documentada en la literatura del dominio
+\cite{arrotta2022dexar}.
 
 \subsection{Módulo de equidad}
 
-El módulo de equidad evaluó desempeño desagregado y disparidad entre subgrupos.
+El módulo de equidad evaluó desempeño desagregado y disparidad entre subgrupos,
+siguiendo la distinción entre el sesgo originado en los datos y la disparidad
+observada en las predicciones \cite{mehrabi2021survey}.
 En Aruba, los subgrupos fueron contextuales, como franja horaria y tipo de día.
 En la configuración multi-hogar, se incorporó el hogar como subgrupo
 poblacional, pues cada vivienda representa una persona o unidad doméstica
 distinta. Las métricas con efecto en el veredicto fueron diferencia de tasa de
-verdaderos positivos y diferencia de tasa de falsos positivos, ambas con umbral
-de 0,10 declarado antes de la ejecución. También se reportaron como descriptivas
-la diferencia de paridad demográfica y el cociente de tasa de selección.
-% Disponible en el .bib: hardt2016equality, origen de la igualdad de
-% oportunidades (diferencia de TVP).
+verdaderos positivos, que corresponde a la igualdad de oportunidades
+\cite{hardt2016equality}, y diferencia de tasa de falsos positivos, ambas con
+umbral de 0,10 declarado antes de la ejecución. También se reportaron como
+descriptivas la diferencia de paridad demográfica y el cociente de tasa de
+selección.
 
 \subsection{Módulo de trazabilidad}
 
@@ -128,6 +182,6 @@ auditables y verificación de auditabilidad. El paso de declaración de criterio
 selló el hash SHA-256 del archivo de configuración. En la verificación final, el
 marco comprobó que ese hash no hubiera cambiado, que la bitácora fuera válida,
 que existiera cobertura uno a uno entre inferencias esperadas y registradas, y
-que los nueve requerimientos contaran con artefactos presentes.
-% Disponibles en el .bib: gebru2021datasheets y mitchell2019modelcards, que
-% originan el datasheet y el model card del procedimiento.
+que los nueve requerimientos contaran con artefactos presentes. El datasheet del
+conjunto de datos y el model card siguen las propuestas de Gebru et al.
+\cite{gebru2021datasheets} y Mitchell et al. \cite{mitchell2019modelcards}.
